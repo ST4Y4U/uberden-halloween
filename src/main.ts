@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import Boot from "./scenes/Boot";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -10,16 +11,5 @@ new Phaser.Game({
     width: 1280,
     height: 720
   },
-  scene: {
-    preload() {},
-    create() {
-      this.add
-        .text(640, 360, "Uberden Halloween", {
-          fontFamily: "sans-serif",
-          fontSize: "28px",
-          color: "#ffffff"
-        })
-        .setOrigin(0.5);
-    }
-  }
+  scene: [Boot]
 });
