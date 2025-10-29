@@ -2,65 +2,22 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>Uberden Halloween</title>
-
-    <!-- 메타데이터: 아이콘/설명 -->
     <meta name="description" content="웹 미니게임 Uberden Halloween" />
     <meta name="theme-color" content="#000000" />
-
-    <!-- 파비콘(선택사항: favicon.ico를 public 루트에 넣으면 됨) -->
     <link rel="icon" href="/favicon.ico" />
-
-    <!-- 간단한 초기 로딩 스타일 -->
     <style>
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-        overflow: hidden;
-        background-color: #000;
-        color: #fff;
-        font-family: sans-serif;
-        user-select: none;
-        -webkit-touch-callout: none;
-        -webkit-tap-highlight-color: transparent;
-      }
-      #game {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      #loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 20px;
-        color: #aaa;
-      }
+      html,body{margin:0;height:100%;background:#000;color:#fff;font-family:sans-serif;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+      #game{width:100%;height:100%;display:flex;justify-content:center;align-items:center}
+      #loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;color:#aaa}
     </style>
   </head>
-
   <body>
-    <div id="game">
-      <div id="loading">Loading...</div>
-    </div>
-
-    <!-- 메인 스크립트 -->
+    <div id="game"><div id="loading">Loading...</div></div>
     <script type="module" src="/src/main.ts"></script>
-
     <script>
-      // 로딩 화면 제거 (Phaser가 실행되면 자동으로 덮어쓰기 됨)
-      window.addEventListener("load", () => {
-        const loader = document.getElementById("loading");
-        if (loader) loader.remove();
-      });
+      window.addEventListener("load",()=>{const e=document.getElementById("loading");e&&e.remove()});
     </script>
   </body>
 </html>
