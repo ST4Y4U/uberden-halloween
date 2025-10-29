@@ -1,2 +1,5 @@
 import { defineConfig } from "vite";
-export default defineConfig({ base: "/uberden-halloween/" });
+
+export default defineConfig({
+  base: "/uberden-halloween/"
+});
