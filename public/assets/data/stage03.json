@@ -96,8 +96,8 @@
         "needsLattice": false,
         "toppings": ["pie_ingredient_sugarpowder","pie_ingredient_cherry"]
       },
-      "successLine": { "who": "client", "text": "완벽한 파이입니다." },
-      "failLine": { "who": "client", "text": "..." }
+      "successLine": { "who": "client", "text": "완벽한 파이입니다.", "sprite": "happy" },
+      "failLine": { "who": "client", "text": "...", "sprite": "angry" }
     }
   ],
   "nextStage": 4
