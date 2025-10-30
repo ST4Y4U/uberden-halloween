@@ -96,8 +96,8 @@
         "needsLattice": false,
         "toppings": []
       },
-      "successLine": { "who": "client", "text": "그래도 센스는 있군." },
-      "failLine": { "who": "client", "text": "지금 나랑 장난하는 거냐?" }
+      "successLine": { "who": "client", "text": "그래도 센스는 있군.", "sprite": "happy" },
+      "failLine": { "who": "client", "text": "지금 나랑 장난하는 거냐?", "sprite": "angry" }
     }
   ],
   "nextStage": 6
