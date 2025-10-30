@@ -1,3 +1,4 @@
+
 // src/scenes/Stage.ts
 import Phaser from "phaser";
 
@@ -31,7 +32,6 @@ const PIE_OFFSET = { x: 0, y: -90 };
 export default class Stage extends Phaser.Scene {
   constructor() { super("Stage"); }
 
-  private isKitchen = false;
   private pie = { hasDough:false, cooked:false, filling:null as string|null, lattice:false, toppings:new Set<string>() };
   private doughMode: "dough" | "lattice" = "dough";
   private magicLocked = true;
@@ -42,7 +42,6 @@ export default class Stage extends Phaser.Scene {
   private pieJam!: Phaser.GameObjects.Image;
   private pieTop!: Phaser.GameObjects.Image;
   private ovenTimer!: Phaser.GameObjects.Image;
-  private hallPieGroup?: Phaser.GameObjects.Container;
   private magicLockImg!: Phaser.GameObjects.Image;
 
   preload() {
@@ -75,27 +74,34 @@ export default class Stage extends Phaser.Scene {
     this.input.topOnly = true;
     this.input.dragDistanceThreshold = 8;
 
-    // create() 내부 맨 위 부분 (배경을 확실히 맨 뒤로)
-    const bg = this.add.image(640, 360, "kitchen_background")
+    // 🟣 배경 (맨 뒤로 고정)
+    this.add.image(640, 360, "kitchen_background")
       .setOrigin(0.5)
-      .setDepth(-1000); // 완전히 맨 뒤로 고정
+      .setDepth(-1000);
 
-// 도마는 항상 위 (항상 보이게 유지)
+    // 🟣 도마는 항상 보임
     this.boardImg = this.add.image(BOARD_POS.x, BOARD_POS.y, "pie_cuttingboard")
       .setDepth(10)
       .setVisible(true);
-    // 파이 컨테이너
+
+    // 🟣 파이 컨테이너
     this.pieGroup = this.add.container(BOARD_POS.x, BOARD_POS.y).setDepth(22).setVisible(false);
     this.pieBottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_raw").setVisible(false);
     this.pieJam = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_jam_apple").setVisible(false);
     this.pieTop = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_top_raw").setVisible(false);
     this.pieGroup.add([this.pieBottom, this.pieJam, this.pieTop]);
 
+    this.pieGroup.setSize(320, 220);
+    this.pieGroup.setInteractive(
+      new Phaser.Geom.Rectangle(-160, -110, 320, 220),
+      Phaser.Geom.Rectangle.Contains
+    );
     this.input.setDraggable(this.pieGroup, true);
 
     this.ovenTimer = this.add.image(TIMER_POS.x, TIMER_POS.y, "kitchen_oven_timer_1").setVisible(false).setDepth(20);
     this.magicLockImg = this.add.image(BASKETS.magic.x, BASKETS.magic.y, "kitchen_magic_lock").setDepth(34).setVisible(true);
 
+    // 🟣 드래그 토큰 생성 유틸 (복귀 트윈 포함)
     const attachSpawnDrag = (
       zone: Phaser.GameObjects.Zone,
       getKey: () => string,
@@ -103,7 +109,6 @@ export default class Stage extends Phaser.Scene {
     ) => {
       let token: Phaser.GameObjects.Image | null = null;
       let dragging = false;
-
       const moveWithPointer = (p: Phaser.Input.Pointer) => { if (token) token.setPosition(p.worldX, p.worldY); };
 
       zone.on("dragstart", (pointer: Phaser.Input.Pointer) => {
@@ -134,10 +139,10 @@ export default class Stage extends Phaser.Scene {
         dragging = false;
         zone.scene.input.off("pointermove", moveWithPointer);
       });
-
       return { wasDragged: () => dragging };
     };
 
+    // 🟣 도우 선반
     const doughShelfZone = this.add.zone(DOUGH_SHELF.x, DOUGH_SHELF.y, DOUGH_SHELF.w, DOUGH_SHELF.h)
       .setOrigin(0.5).setInteractive({ draggable: true, useHandCursor: true }).setDepth(100);
 
@@ -148,7 +153,6 @@ export default class Stage extends Phaser.Scene {
         const dx = token.x - BOARD_POS.x, dy = token.y - BOARD_POS.y;
         const onBoard = (dx*dx + dy*dy) <= (BOARD_HIT_R*BOARD_HIT_R);
         const key = token.texture.key;
-
         if (onBoard) {
           if (key === "kitchen_ingredient_dough") {
             this.pie.hasDough = true; this.pie.cooked = false; this.pie.filling = null;
@@ -169,6 +173,7 @@ export default class Stage extends Phaser.Scene {
       }
     });
 
+    // 🟣 재료/토핑 바구니
     const makeIngredientBasket = (rect:{x:number;y:number;w:number;h:number}, texKey:string) => {
       const z = this.add.zone(rect.x, rect.y, rect.w, rect.h)
         .setOrigin(0.5).setInteractive({ draggable: true, useHandCursor: true }).setDepth(100);
@@ -189,12 +194,10 @@ export default class Stage extends Phaser.Scene {
       });
     };
 
-    makeIngredientBasket(BASKETS.apple, "kitchen_ingredient_apple");
-    makeIngredientBasket(BASKETS.pumpkin, "kitchen_ingredient_pumpkin");
-    makeIngredientBasket(TOPPING_ZONES.cherry, "pie_ingredient_cherry");
-    makeIngredientBasket(TOPPING_ZONES.sprinkle, "pie_ingredient_sprinkle");
-    makeIngredientBasket(TOPPING_ZONES.sugarpowder, "pie_ingredient_sugarpowder");
+    Object.entries(BASKETS).forEach(([k, v]) => makeIngredientBasket(v, `kitchen_ingredient_${k}`));
+    Object.entries(TOPPING_ZONES).forEach(([k, v]) => makeIngredientBasket(v, `pie_ingredient_${k}`));
 
+    // 🟣 오븐/소각
     const ovenRect = new Phaser.Geom.Rectangle(OVEN_ZONE.x-OVEN_ZONE.w/2, OVEN_ZONE.y-OVEN_ZONE.h/2, OVEN_ZONE.w, OVEN_ZONE.h);
     const burnRect = new Phaser.Geom.Rectangle(BURN_ZONE.x-BURN_ZONE.w/2, BURN_ZONE.y-BURN_ZONE.h/2, BURN_ZONE.w, BURN_ZONE.h);
 
@@ -246,3 +249,4 @@ export default class Stage extends Phaser.Scene {
     this.pieBottom.setVisible(false); this.pieJam.setVisible(false); this.pieTop.setVisible(false);
   }
 }
+
