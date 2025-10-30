@@ -262,28 +262,46 @@ export default class Hall extends Phaser.Scene {
   }
 
   private playLinesThenResult(lines: Line[], isSuccess: boolean) {
-    let i = 0;
-    const next = () => {
-      if (i >= lines.length) {
-        this.hideBoxes();
-        this.registry.set("endingType", isSuccess ? "good" : "bad");
-        this.scene.start("Result");
-        return;
-      }
-      const { who, text, sprite } = lines[i++];
-      const isClient = (who === "client");
-      if (isClient && sprite && this.customer?.sprites?.[sprite]) {
-        this.client.setTexture(this.customer.sprites[sprite]);
-      }
-      this.showLine(isClient, text);
-      this.textbox.removeAllListeners("pointerup");
-      this.myTextbox.removeAllListeners("pointerup");
-      this.textbox.on("pointerup", next);
-      this.myTextbox.on("pointerup", next);
-    };
-    next();
-  }
+  let i = 0;
+  const next = () => {
+    if (i >= lines.length) {
+      this.hideBoxes();
 
+      // ✅ 통계 누적 코드 (여기에 추가)
+      const summary = this.registry.get("scoreSummary") || { total: 0, good: 0, bad: 0 };
+      summary.total += 1;
+      if (isSuccess) summary.good += 1;
+      else summary.bad += 1;
+      this.registry.set("scoreSummary", summary);
+      // ✅ 통계 누적 끝
+
+      // 마지막 스테이지인지 확인
+      const isLast = (this.stageData?.id === 7);
+
+      if (isLast) {
+        this.scene.start("Result"); // 엔딩으로
+      } else {
+        const nextStage = (this.stageData?.id || 1) + 1;
+        this.registry.set("currentStage", nextStage);
+        this.registry.set("pieState", null);
+        this.scene.start("Hall"); // 다음 스테이지로
+      }
+      return;
+    }
+
+    const { who, text, sprite } = lines[i++];
+    const isClient = (who === "client");
+    if (isClient && sprite && this.customer?.sprites?.[sprite]) {
+      this.client.setTexture(this.customer.sprites[sprite]);
+    }
+    this.showLine(isClient, text);
+    this.textbox.removeAllListeners("pointerup");
+    this.myTextbox.removeAllListeners("pointerup");
+    this.textbox.on("pointerup", next);
+    this.myTextbox.on("pointerup", next);
+  };
+  next();
+}
   // 미리보기
   private renderPiePreview(preview: Phaser.GameObjects.Container, pvBottom: Phaser.GameObjects.Image, pvJam: Phaser.GameObjects.Image, pvTop: Phaser.GameObjects.Image) {
     const state: any = this.registry.get("pieState");
