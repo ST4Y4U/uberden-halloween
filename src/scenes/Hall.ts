@@ -22,23 +22,15 @@ export default class Hall extends Phaser.Scene {
     this.load.image("hall_arrow", "assets/images/hall_arrow.png");
     this.load.image("hall_stage_box", "assets/images/hall_stage_box.png");
 
-    this.load.image("client_test_standard", "assets/images/client_test_standard.png");
+    this.load.image("client_levin_standard", "assets/images/client_levin_standard.png");
   }
 
   create() {
     // 배경, 카운터, 손님 배치
     this.add.image(640, 360, "hall_background").setDepth(-1000);
-    this.add.image(640, 500, "hall_counter").setDepth(0);
+    this.add.image(640, 500, "hall_counter").setDepth(10);
 
     this.client = this.add.image(640, 300, "client_levin_standard").setDepth(1).setVisible(true);
-
-    // 스테이지 표시
-    this.stageBox = this.add.image(100, 80, "hall_stage_box").setDepth(10);
-    this.stageNum = this.add.text(100, 80, "STAGE 1", {
-      fontFamily: "sans-serif",
-      fontSize: "24px",
-      color: "#ffffff",
-    }).setOrigin(0.5).setDepth(11);
 
     // 텍스트 박스 (손님)
     this.textbox = this.add.image(640, 590, "hall_textbox").setDepth(20).setVisible(false);
