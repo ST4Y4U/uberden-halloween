@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import Boot from "./scenes/Boot";
 import MainMenu from "./scenes/MainMenu";
+import Stage from "./scenes/Stage";
+import Result from "./scenes/Result";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -12,5 +14,5 @@ new Phaser.Game({
     width: 1280,
     height: 720
   },
-  scene: [Boot, MainMenu] // ★ MainMenu 등록
+  scene: [Boot, MainMenu, Stage, Result]
 });
