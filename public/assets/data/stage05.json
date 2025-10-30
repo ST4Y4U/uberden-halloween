@@ -60,6 +60,37 @@
         "happy": "client_sonya_happy",
         "angry": "client_sonya_angry"
       },
+      "dialogue": [
+        {
+          "id": "d1",
+          "who": "client",
+          "text": "빨간 열매.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d2" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "씨앗 많은 그거. 나머지는 필요 없어.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d3" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "딸기만 넣고, 아무 것도 올리지 마.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "네", "next": "end" }
+          ]
+        },
+      ],
       "order": {
         "filling": "pie_jam_strawberry",
         "needsLattice": false,
