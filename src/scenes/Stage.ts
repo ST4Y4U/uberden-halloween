@@ -1,13 +1,12 @@
-// src/scenes/Stage.ts
 import Phaser from "phaser";
 import { getGameState, setGameState } from "../data/state";
 
 type PieState = {
   hasDough: boolean;
   cooked: boolean;
-  filling: string | null; // "pie_jam_apple" 등
+  filling: string | null;
   lattice: boolean;
-  toppings: string[];     // "pie_ingredient_cherry" 등
+  toppings: string[];
 };
 
 const DEPTH = {
@@ -15,12 +14,15 @@ const DEPTH = {
   BOARD: 10,
   PIE: 22,
   TIMER: 30,
-  LOCK: 14,
+  LOCK: 34,
   ARROW: 40,
   TOKENS: 101,
 };
 
-// 🎯 위치 전부 수동 지정: 여기 숫자만 바꾸면 됨
+// 시각 오프셋: 도마 중심에서 살짝 위로 띄워 보이게
+const PIE_OFFSET = { x: 0, y: -90 };
+
+// 위치 수동 지정
 const POS = {
   background: { x: 640, y: 360 },
   board:      { x: 720, y: 620, r: 170, snap: 1 },
@@ -46,8 +48,8 @@ const POS = {
   // 토핑 존
   toppings: {
     cherry:      { x: 95, y: 475, key: "pie_ingredient_cherry" },
-    sprinkle:    { x: 242, y: 475, key: "pie_ingredient_sprinkle" },
-    sugarpowder: { x: 391, y: 475, key: "pie_ingredient_sugarpowder" },
+    sprinkle:    { x: 391, y: 475, key: "pie_ingredient_sprinkle" },
+    sugarpowder: { x: 242, y: 475, key: "pie_ingredient_sugarpowder" },
   },
 
   // 매직 락/키
@@ -79,33 +81,27 @@ export default class Stage extends Phaser.Scene {
   preload() {
     const need = (k:string, p:string)=>{ if (!this.textures.exists(k)) this.load.image(k,p); };
 
-    // 배경/도마/화살표
     need("kitchen_background","assets/images/kitchen_background.webp");
     need("pie_cuttingboard", "assets/images/pie_cuttingboard.png");
     need("kitchen_arrow",    "assets/images/kitchen_arrow.png");
 
-    // 파이 스프라이트
     ["raw","cooked"].forEach(s=>{
       need(`pie_bottom_${s}`, `assets/images/pie_bottom_${s}.png`);
       need(`pie_top_${s}`,    `assets/images/pie_top_${s}.png`);
     });
 
-    // 필링/아이콘
     ["pumpkin","raspberry","blueberry","strawberry","pecan","apple","magic"].forEach(f=>{
       need(`kitchen_ingredient_${f}`, `assets/images/kitchen_ingredient_${f}.png`);
       need(`pie_jam_${f}`,            `assets/images/pie_jam_${f}.png`);
     });
 
-    // 도우/격자 토큰
     need("kitchen_ingredient_dough",   "assets/images/kitchen_ingredient_dough.png");
     need("kitchen_ingredient_lattice", "assets/images/kitchen_ingredient_lattice.png");
 
-    // 토핑
     ["cherry","sprinkle","sugarpowder"].forEach(t=>{
       need(`pie_ingredient_${t}`, `assets/images/pie_ingredient_${t}.png`);
     });
 
-    // 타이머/락
     [1,2,3,4].forEach(n=> need(`kitchen_oven_timer_${n}`, `assets/images/kitchen_oven_timer_${n}.png`));
     need("kitchen_magic_lock", "assets/images/kitchen_magic_lock.png");
     need("kitchen_magic_key",  "assets/images/kitchen_magic_key.png");
@@ -115,24 +111,21 @@ export default class Stage extends Phaser.Scene {
     this.input.topOnly = true;
     this.input.dragDistanceThreshold = 8;
 
-    // 배경
     this.add.image(POS.background.x, POS.background.y, "kitchen_background").setDepth(DEPTH.BG);
 
-    // 영역 사각형
     this.ovenRect = new Phaser.Geom.Rectangle(POS.oven.x-POS.oven.w/2, POS.oven.y-POS.oven.h/2, POS.oven.w, POS.oven.h);
     this.burnRect = new Phaser.Geom.Rectangle(POS.burn.x-POS.burn.w/2, POS.burn.y-POS.burn.h/2, POS.burn.w, POS.burn.h);
 
-    // 도마
     this.boardImg = this.add.image(POS.board.x, POS.board.y, "pie_cuttingboard").setDepth(DEPTH.BOARD);
 
-    // 파이 컨테이너
+    // 파이 컨테이너(도마 위, 시각 오프셋)
     this.pieGroup = this.add.container(POS.board.x, POS.board.y).setDepth(DEPTH.PIE).setVisible(false);
-    this.pieBottom = this.add.image(0,0,"pie_bottom_raw").setVisible(false);
-    this.pieJam    = this.add.image(0,0,"pie_jam_apple").setVisible(false);
-    this.pieTop    = this.add.image(0,0,"pie_top_raw").setVisible(false);
+    this.pieBottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_raw").setVisible(false);
+    this.pieJam    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_jam_apple").setVisible(false);
+    this.pieTop    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_top_raw").setVisible(false);
     this.pieGroup.add([this.pieBottom, this.pieJam, this.pieTop]);
 
-    // ✅ 컨테이너 인터랙션/드래그 가능화
+    // 컨테이너 hit-area (드래그는 가능하지만 항상 스냅백 → 화면상 “안 움직이는 느낌”)
     const r = POS.board.r ?? 170;
     this.pieGroup.setSize(r*2, r*2);
     this.pieGroup.setInteractive(new Phaser.Geom.Circle(0,0,r), Phaser.Geom.Circle.Contains);
@@ -141,13 +134,13 @@ export default class Stage extends Phaser.Scene {
     // 타이머
     this.ovenTimer = this.add.image(POS.timer.x, POS.timer.y, POS.timer.frames[0]).setDepth(DEPTH.TIMER).setVisible(false);
 
-    // ← 홀로 이동
+    // ← Hall
     this.add.image(POS.arrowHall.x, POS.arrowHall.y, "kitchen_arrow")
       .setDepth(DEPTH.ARROW)
       .setInteractive({ useHandCursor:true })
       .on("pointerup", ()=> this.scene.start("Hall"));
 
-    // 드래그 토큰 스폰 헬퍼
+    // 공통 토큰 스폰 헬퍼 (드랍 후 원위치로 트윈 복귀 → “다시 돌아가는” 시각 효과)
     const attachSpawnDrag = (
       zone: Phaser.GameObjects.Zone,
       getKey: () => string | undefined,
@@ -178,13 +171,13 @@ export default class Stage extends Phaser.Scene {
       });
     };
 
-    // 도우/격자 슬롯 (탭으로 모드 토글, 드래그로 현재 모드 토큰 생성)
+    // 도우/격자 슬롯
     const doughZone = this.add.zone(POS.doughSlot.x, POS.doughSlot.y, 120, 100)
       .setOrigin(0.5).setDepth(DEPTH.ARROW)
       .setInteractive({ draggable:true, useHandCursor:true });
 
-    doughZone.on("pointerup", (_p: any, _lx: number, _ly: number, e: any)=>{
-      if (e && e.wasDragged) return; // 드래그였으면 토글 X
+    doughZone.on("pointerup", (_p:any,_lx:number,_ly:number,e:any)=>{
+      if (e && e.wasDragged) return; // 드래그였다면 토글 X
       this.doughMode = (this.doughMode === "dough") ? "lattice" : "dough";
       const t = this.add.text(POS.doughSlot.x, POS.doughSlot.y-40, this.doughMode.toUpperCase(),
         { fontFamily:"sans-serif", fontSize:"18px", color:"#6E2B8B" }).setOrigin(0.5).setDepth(DEPTH.ARROW);
@@ -200,7 +193,7 @@ export default class Stage extends Phaser.Scene {
         if (this.pie.cooked) return;
 
         if (token.texture.key === "kitchen_ingredient_dough"){
-          // 새 반죽
+          // 새 반죽 시작
           this.pie = { hasDough:true, cooked:false, filling:null, lattice:false, toppings:[] };
           this.pieGroup.setVisible(true);
           this.pieBottom.setTexture("pie_bottom_raw").setVisible(true);
@@ -231,7 +224,6 @@ export default class Stage extends Phaser.Scene {
         isLocked
       );
     };
-
     Object.values(POS.fillings).forEach((f:any)=> addFilling(f.x, f.y, f.key, f.mapsTo, f.lockedBy));
 
     // 매직 락/키
@@ -258,7 +250,7 @@ export default class Stage extends Phaser.Scene {
       });
     }
 
-    // 토핑 존 (구운 뒤에만 적용)
+    // 토핑(구운 뒤만 가능)
     const addTopping = (x:number,y:number,key:string)=>{
       const z = this.add.zone(x,y,90,90).setOrigin(0.5).setDepth(DEPTH.ARROW)
         .setInteractive({ draggable:true, useHandCursor:true });
@@ -269,14 +261,14 @@ export default class Stage extends Phaser.Scene {
           if (!this.pie.cooked) return;
           if (this.pie.toppings.includes(key)) return;
           this.pie.toppings.push(key);
-          const top = this.add.image(0,0,key).setDepth(DEPTH.PIE+1);
+          const top = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, key).setDepth(DEPTH.PIE+1);
           this.pieGroup.add(top);
         }
       );
     };
     Object.values(POS.toppings).forEach((t:any)=> addTopping(t.x, t.y, t.key));
 
-    // 파이 드래그 종료 핸들러: 오븐/소각 판정
+    // 파이 드래그 종료: 오븐/소각 판정 + 항상 스냅백
     this.input.on("dragend", (_p:any, g:any)=>{
       if (g !== this.pieGroup) return;
       const rect = this.pieGroup.getBounds();
@@ -285,12 +277,24 @@ export default class Stage extends Phaser.Scene {
       } else if (Phaser.Geom.Intersects.RectangleToRectangle(rect, this.burnRect)){
         this.resetPie();
       }
-      // 항상 도마로 복귀
       this.pieGroup.setPosition(POS.board.x, POS.board.y);
     });
+
+    // 이전에 만든 파이가 있다면(중간 복귀) 도마에 반영
+    const G = getGameState();
+    if (G.pie?.cooked) {
+      this.pie = { hasDough:true, cooked:true, filling:G.pie.filling ?? null, lattice:G.pie.lattice ?? false, toppings:[...(G.pie.toppings ?? [])] };
+      this.pieGroup.setVisible(true);
+      this.pieBottom.setTexture("pie_bottom_cooked").setVisible(true);
+      if (this.pie.filling) this.pieJam.setTexture(this.pie.filling).setVisible(true);
+      if (this.pie.lattice) this.pieTop.setTexture("pie_top_cooked").setVisible(true);
+      for (const t of this.pie.toppings) {
+        const top = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, t).setDepth(DEPTH.PIE+1);
+        this.pieGroup.add(top);
+      }
+    }
   }
 
-  // === 유틸 ===
   private isOnBoard(x:number, y:number){
     const dx = x - POS.board.x, dy = y - POS.board.y;
     const r = POS.board.r ?? 170;
@@ -317,7 +321,7 @@ export default class Stage extends Phaser.Scene {
         this.pieGroup.setPosition(POS.board.x, POS.board.y).setVisible(true);
         this.input.setDraggable(this.pieGroup, true);
 
-        // 홀 판정용 상태 저장
+        // Hall로 들고갈 스냅샷 저장
         const S = getGameState();
         S.pie = {
           cooked: this.pie.cooked,
@@ -338,7 +342,7 @@ export default class Stage extends Phaser.Scene {
     this.pieTop.setVisible(false);
 
     const S = getGameState();
-    S.pie = undefined as any;
+    delete S.pie;
     setGameState(S);
   }
 }
