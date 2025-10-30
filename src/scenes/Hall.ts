@@ -48,7 +48,7 @@ export default class Hall extends Phaser.Scene {
     }).setDepth(31).setVisible(false);
 
     this.myText = this.add.text(125, 483, "", {
-      fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width:520 }
+      fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width:420 }
     }).setDepth(32).setVisible(false);
 
     this.clBox.on("pointerup", () => this.advance());
