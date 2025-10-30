@@ -1,36 +1,33 @@
 // src/data/loadStage.ts
-export interface Line { who:"client"|"player"; text:string; sprite?:string }
-export interface OrderSpec { filling?:string; needsLattice?:boolean; toppings?:string[]; ignoreLattice?:boolean; ignoreToppings?:boolean; exactMatch?:boolean }
-export interface CustomerData { id:string; sprites:Record<string,string>; order?:OrderSpec; successLine?:Line|Line[]; failLine?:Line|Line[] }
-export interface StageData {
-  id:number; name:string; bakeTimeSec?:number;
-  preface?:Line[]; epilogueSuccess?:Line[]; epilogueFail?:Line[];
-  layout?:{ hall?:{ standX?:number; standY?:number }; kitchen?:any };
-  customers: CustomerData[];
-}
+export type Choice = { label: string; next: string };
+export type Line = { who: "client" | "player"; text: string; sprite?: "standard" | "happy" | "angry" };
+export type DialogNode = { id: string; who: "client"; text: string; sprite?: "standard" | "happy" | "angry"; choices: Choice[] };
 
-async function fetchJson(url:string){
-  console.log("[stage json try]", url);
-  const r = await fetch(url, { cache: "no-cache" });
-  if (!r.ok) throw new Error(`HTTP ${r.status} @ ${url}`);
-  return r.json();
-}
+export type Customer = {
+  id: string;
+  name?: string;
+  sprites: { standard: string; happy?: string; angry?: string };
+  preDialogue?: Line[];
+  dialogue?: DialogNode[];
+  order?: { filling?: string; needsLattice?: boolean; toppings?: string[]; ignoreLattice?: boolean; ignoreToppings?: boolean };
+  successLine?: Line;
+  failLine?: Line;
+};
 
-// ✅ baseURI를 기준으로 항상 public/ 기준 경로를 만듦
-function urlFromBase(path: string): string {
-  return new URL(path.replace(/^\/+/, ""), document.baseURI).toString();
-}
+export type StageData = {
+  id: number;
+  name?: string;
+  ui?: { arrowToKitchen?: { x: number; y: number }; arrowToHall?: { x: number; y: number } };
+  layout?: { hall?: any; kitchen?: any };
+  customers: Customer[];
+  epilogueSuccess?: Line[];   // 스테이지 7 전용 가능
+  epilogueFail?: Line[];
+};
 
-export async function loadStageData(stageId:number): Promise<StageData> {
-  const name = `stage0${stageId}.json`;
-  // 1순위: public/assets/data
-  const p1 = urlFromBase(`assets/data/${name}`);
-  // 2순위: public/data (예전 구조 호환)
-  const p2 = urlFromBase(`data/${name}`);
-
-  try { return await fetchJson(p1); }
-  catch (e1) {
-    console.warn("[stage json fallback]", e1);
-    return await fetchJson(p2);
-  }
+export async function loadStageData(id: number): Promise<StageData> {
+  // GitHub Pages 경로: public/assets/data/stage0N.json
+  const path = `/uberden-halloween/assets/data/stage0${id}.json`;
+  const res = await fetch(path);
+  if (!res.ok) throw new Error(`stage json ${id} 404`);
+  return (await res.json()) as StageData;
 }
