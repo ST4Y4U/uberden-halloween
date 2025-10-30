@@ -29,7 +29,7 @@ const MAGIC_KEY = { x: 1240, y: 505, w: 57, h: 21 };
 const PIE_OFFSET = { x: 0, y: -90 };
 
 // ===== 스테이지 플래그(보스 판정) =====
-// (원한다면 Boot/Main에서 this.registry.set("stage", n)로 주입)
+// (원하면 Boot/Main에서 this.registry.set("stage", n)으로 주입)
 const getStageFromRegistry = (): number => {
   try {
     const w = window as unknown as { STAGE?: number };
@@ -53,6 +53,7 @@ export default class Stage extends Phaser.Scene {
   private toppingSprites: Phaser.GameObjects.Image[] = [];
   private doughMode: "dough" | "lattice" = "dough";
   private magicLocked = true; // 시작 잠금
+  private isBaking = false;   // 오븐 동작 중
 
   private boardImg!: Phaser.GameObjects.Image;
   private pieGroup!: Phaser.GameObjects.Container;
@@ -283,20 +284,30 @@ export default class Stage extends Phaser.Scene {
     const burnZone = this.add.zone(BURN_ZONE.x, BURN_ZONE.y, BURN_ZONE.w, BURN_ZONE.h)
       .setOrigin(0.5).setRectangleDropZone(BURN_ZONE.w, BURN_ZONE.h).setDepth(5);
 
-    // 드롭 처리
+    // 드롭 처리(오븐 중에는 스냅백/표시 금지)
     this.input.on("drop", (_p: any, g: any, dropZone: any) => {
       if (g !== this.pieGroup) return;
+
       if (dropZone === ovenZone && this.pie.hasDough) {
-        this.activateOvenTimer(); // 여기서만 파이 숨김
-      } else if (dropZone === burnZone) {
-        this.resetPie();          // 정확히 소각 존에 드롭해야만 리셋
+        this.activateOvenTimer(); // 숨김 + isBaking=true
+        return;                   // 스냅백/표시 금지
       }
-      this.pieGroup.setVisible(true).setPosition(BOARD_POS.x, BOARD_POS.y);
+
+      if (dropZone === burnZone) {
+        this.resetPie();
+      }
+
+      if (!this.isBaking) {
+        this.pieGroup.setVisible(true).setPosition(BOARD_POS.x, BOARD_POS.y);
+      }
     });
 
-    // 드롭존 밖에서 놓았을 때 스냅백
+    // 드롭존 밖에서 놓았을 때 스냅백(베이킹 중에는 금지)
     this.input.on("dragend", (_p:any, g:any) => {
-      if (g === this.pieGroup) this.pieGroup.setVisible(true).setPosition(BOARD_POS.x, BOARD_POS.y);
+      if (g !== this.pieGroup) return;
+      if (!this.isBaking) {
+        this.pieGroup.setVisible(true).setPosition(BOARD_POS.x, BOARD_POS.y);
+      }
     });
 
     // TODO: Hall 씬 준비되면 화살표 활성화
@@ -316,7 +327,8 @@ export default class Stage extends Phaser.Scene {
   }
 
   private activateOvenTimer() {
-    this.pieGroup.setVisible(false);
+    this.isBaking = true;               // 베이킹 시작
+    this.pieGroup.setVisible(false);    // 굽는 동안 파이 비가시화
     this.input.setDraggable(this.pieGroup, false);
 
     const frames = ["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
@@ -335,6 +347,7 @@ export default class Stage extends Phaser.Scene {
         if (this.pie.lattice) this.pieTop.setTexture("pie_top_cooked").setVisible(true);
         this.pieGroup.setPosition(BOARD_POS.x, BOARD_POS.y).setVisible(true);
         this.input.setDraggable(this.pieGroup, true);
+        this.isBaking = false;          // 베이킹 종료
       }
     };
     this.time.delayedCall(1000, tick);
