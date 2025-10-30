@@ -69,6 +69,11 @@
         "happy": "client_hide_changed",
         "angry": "client_hide_angry"
       },
+      "preDialogue": [
+        { "who": "player", "text": "...왜 아직 안가시지?" },
+        { "who": "player", "text": "잠깐, 이 사람, 최악의 악당 하이드잖아!" },
+        { "who": "player", "text": "내 특제 마법 파이로 악당을 무찌르고 세계 제일의 베이커리가... 아니 영웅이 되겠어!" }
+      ],
       "order": {
         "filling": "pie_jam_magic",
         "ignoreToppings": true,
