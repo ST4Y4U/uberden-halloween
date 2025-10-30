@@ -9,11 +9,6 @@ new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game",
   backgroundColor: "#000000",
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 1280,
-    height: 720
-  },
-  scene: [Boot, MainMenu, Hall, Stage, Result],
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 1280, height: 720 },
+  scene: [Boot, MainMenu, Hall, Stage, Result]
 });
