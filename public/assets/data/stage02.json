@@ -60,6 +60,37 @@
         "happy": "client_cheongbi_happy",
         "angry": "client_cheongbi_angry"
       },
+      "dialogue": [
+        {
+          "id": "d1",
+          "who": "client",
+          "text": "블루베리 파이로 주세요. 위에 뭐가 뿌려졌으면 좋겠는데...",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d2" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "생각났어요. 슈가파우더라고 하나요? 그걸 올려주세요.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d3" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "블루베리 파이, 위에 슈가파우더 올려서 주세요.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "네", "next": "end" }
+          ]
+        },
+      ],
       "order": {
         "filling": "pie_jam_blueberry",
         "needsLattice": true,
