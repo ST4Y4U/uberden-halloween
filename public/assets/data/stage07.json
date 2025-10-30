@@ -1,0 +1,95 @@
+{
+  "id": 7,
+  "name": "Stage 7",
+  "bakeTimeSec": 4,
+  "magicUnlocked": true,
+  "ui": {
+    "arrowToKitchen": { "x": 1184, "y": 648 },
+    "arrowToHall": { "x": 96, "y": 648 }
+  },
+  "layout": {
+    "hall": {
+      "entryX": -200, "entryY": 420,
+      "standX": 320, "standY": 420,
+      "deliverZone": { "x": 320, "y": 420, "w": 220, "h": 220 }
+    },
+    "kitchen": {
+      "board": { "x": 700, "y": 520, "r": 170, "snap": 1 },
+      "ovenZone": { "x": 1030, "y": 300, "w": 250, "h": 260 },
+      "burnZone": { "x": 1030, "y": 640, "w": 260, "h": 120 },
+      "timer": {
+        "x": 1030, "y": 240,
+        "frames": ["kitchen_oven_timer_4", "kitchen_oven_timer_3", "kitchen_oven_timer_2", "kitchen_oven_timer_1"]
+      },
+      "bins": {
+        "doughSlot": {
+          "x": 1160, "y": 520,
+          "mode": "dough",
+          "cycleOnTap": true,
+          "label": {
+            "x": 1160,
+            "y": 560,
+            "textDough": "DOUGH",
+            "textLattice": "LATTICE",
+            "fontSize": 20,
+            "color": "#6E2B8B"
+          },
+          "alternatives": [
+            { "key": "kitchen_ingredient_dough", "mapsTo": "pie_bottom_raw" },
+            { "key": "kitchen_ingredient_lattice", "mapsTo": "pie_top_raw" }
+          ]
+        },
+        "fillings": [
+          { "key": "kitchen_ingredient_pumpkin",   "mapsTo": "pie_jam_pumpkin",   "x": 180, "y": 160 },
+          { "key": "kitchen_ingredient_raspberry", "mapsTo": "pie_jam_raspberry", "x": 380, "y": 160 },
+          { "key": "kitchen_ingredient_blueberry", "mapsTo": "pie_jam_blueberry", "x": 580, "y": 160 },
+          { "key": "kitchen_ingredient_strawberry","mapsTo": "pie_jam_strawberry","x": 780, "y": 160 },
+          { "key": "kitchen_ingredient_pecan",     "mapsTo": "pie_jam_pecan",     "x": 180, "y": 300 },
+          { "key": "kitchen_ingredient_apple",     "mapsTo": "pie_jam_apple",     "x": 380, "y": 300 },
+          { "key": "kitchen_ingredient_magic",     "mapsTo": "pie_jam_magic",     "x": 580, "y": 300 }
+        ],
+        "toppings": [
+          { "key": "pie_ingredient_cherry",      "x": 240, "y": 620 },
+          { "key": "pie_ingredient_sprinkle",    "x": 480, "y": 620 },
+          { "key": "pie_ingredient_sugarpowder", "x": 720, "y": 620 }
+        ]
+      },
+      "magic": {
+        "lock": { "key": "kitchen_magic_lock", "x": 580, "y": 300, "w": 72, "h": 72 },
+        "key": { "key": "kitchen_magic_key", "x": 1220, "y": 660 }
+      }
+    }
+  },
+  "customers": [
+    {
+      "id": "c7",
+      "name": "hide",
+      "sprites": {
+        "standard": "client_hide_standard",
+        "happy": "client_hide_changed",
+        "angry": "client_hide_angry"
+      },
+      "order": {
+        "filling": "pie_jam_magic",
+        "ignoreToppings": true,
+        "ignoreLattice": true
+      },
+      "successLine": { "who": "client", "text": "이건 뭐지? 정말 환상적인 맛이군.", "sprite": "happy" },
+      "failLine": { "who": "client", "text": "죽기 전 유언은 남기게 해주지.", "sprite": "angry" }
+    }
+  ],
+  "epilogueSuccess": [
+    { "who": "client", "text": "음? 잠깐, 파이에 무슨 짓을 한거지.", "sprite": "angry"},
+    { "who": "player", "text": "그냥 파이인데요. 사실 아님." },
+    { "who": "client", "text": "어짜피 아무 효과도 없을...윽, 뭐지? 몸이...", "sprite": "anxious" },
+    { "who": "client", "text": "* 펑!", "sprite": "changed" }
+  ],
+  "epilogueFail": [
+    { "who": "client", "text": "정말 손님 대하는 솜씨가 형편없군.", "sprite": "angry"},
+    { "who": "player", "text": "전 그래도 열심히 했는데..." },
+    { "who": "client", "text": "그 솜씨라면 가게가 없는 편이 차라리 나을거다.", "sprite": "angry" },
+    { "who": "player", "text": "안돼!!!!!!" },
+    { "who": "client", "text": "* 하이드가 가게를 반토막내버렸다.", "sprite": "angry" }
+  ],
+  "endGame": true
+}
