@@ -192,6 +192,14 @@ export default class Stage extends Phaser.Scene {
       if(!this.isBaking)this.pieGroup.setVisible(true).setPosition(BOARD_POS.x,BOARD_POS.y);
     });
     this.input.on("dragend",(_p:any,g:any)=>{if(g===this.pieGroup&&!this.isBaking)this.pieGroup.setVisible(true).setPosition(BOARD_POS.x,BOARD_POS.y);});
+
+    const toHallArrow = this.add.image(1220, 640, "kitchen_arrow")
+      .setDepth(999)
+      .setInteractive({ useHandCursor: true });
+
+    toHallArrow.on("pointerup", () => {
+      this.scene.start("Hall");
+    });
   }
 
   private mapKitchenToJam(k:string){return `pie_jam_${k.replace("kitchen_ingredient_","")}`;}
