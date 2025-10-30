@@ -1,50 +1,49 @@
 // src/data/state.ts
-export interface PieState {
-  hasDough: boolean;
-  cooked: boolean;
-  filling: string | null;     // "pie_jam_apple" 등
-  lattice: boolean;
-  toppings: string[];         // ["pie_ingredient_..."]
-}
-
-export interface KitchenState {
-  pieState?: PieState | null; // 현재 도마 위 파이 상태
-  pieReady?: boolean;         // 홀 프리뷰용 플래그
-}
-
-export interface ScoreSummary {
-  total: number;
-  good: number;
-  bad: number;
-}
-
-export interface GameState {
-  stageId: number;            // 현재 스테이지 (1~7)
-  kitchen?: KitchenState;
-  result?: "good" | "normal" | "bad";
-}
-
-let current: GameState = {
-  stageId: 1,
-  kitchen: { pieState: null, pieReady: false }
+export type Stats = { good: number; bad: number };
+export type GameState = {
+  stageId: number;          // 1..7
+  stats: Stats;             // 누적 평가
 };
 
-export function getGameState(): GameState {
-  return current;
+const KEY = "uberden_halloween_state";
+
+function _load(): GameState {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { stageId: 1, stats: { good: 0, bad: 0 } };
 }
 
-export function setGameState(s: GameState) {
-  current = s;
+function _save(g: GameState) {
+  localStorage.setItem(KEY, JSON.stringify(g));
 }
 
-export function setPieState(pie: PieState | null, ready = false) {
-  current.kitchen = current.kitchen || {};
-  current.kitchen.pieState = pie;
-  current.kitchen.pieReady = ready;
+export function getGameState(): GameState { return _load(); }
+export function setGameState(g: GameState) { _save(g); }
+
+export function resetRun() {
+  setGameState({ stageId: 1, stats: { good: 0, bad: 0 } });
 }
 
-export function nextStage() {
-  current.stageId = Math.min((current.stageId ?? 1) + 1, 7);
-  // 홀/주방 루프 안정화를 위해 파이 상태 초기화
-  setPieState(null, false);
+export function recordEvaluation(ok: boolean) {
+  const g = _load();
+  if (오케이) g.stats.good++; else g.stats.bad++;
+  _save(g);
+}
+
+export function advanceStage(): number {
+  const g = _load();
+  g.stageId = Math.min(7, g.stageId + 1);
+  _save(g);
+  return g.stageId;
+}
+
+export function computeEnding(): "good" | "normal" | "bad" {
+  const g = _load();
+  const total = g.stats.good + g.stats.bad;
+  if (total === 0) return "normal";
+  if (g.stats.bad === 0) return "good";          // 전부 성공
+  if (g.stats.good === 0) return "bad";          // 전부 실패
+  return "normal";                               // 섞였으면 노말
 }
