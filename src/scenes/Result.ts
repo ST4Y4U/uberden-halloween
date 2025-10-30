@@ -1,29 +1,33 @@
+// src/scenes/Result.ts
 import Phaser from "phaser";
+import { getGameState, setGameState } from "../data/state.ts";
 
 export default class Result extends Phaser.Scene {
   constructor(){ super("Result"); }
 
-  preload(){
+  preload() {
     this.load.image("ending_good",   "assets/images/ending_good.png");
     this.load.image("ending_normal", "assets/images/ending_normal.png");
     this.load.image("ending_bad",    "assets/images/ending_bad.png");
   }
 
-  create(){
-    const summary = this.registry.get("scoreSummary") || { total:0, good:0, bad:0 };
+  create() {
+    const gs = getGameState();
+    const res = gs.result ?? "normal"; // 기본 노말
 
-    let endingType: "good" | "normal" | "bad" = "normal";
-    if (summary.good === summary.total) endingType = "good";
-    else if (summary.bad === summary.total) endingType = "bad";
-    else endingType = "normal";
+    const key =
+      res === "good" ? "ending_good" :
+      res === "bad"  ? "ending_bad"  : "ending_normal";
 
-    this.add.image(640, 360, `ending_${endingType}`);
+    this.add.image(640, 360, key).setDepth(0);
 
-    // 클릭/터치 → 타이틀로
+    this.add.text(640, 660, "화면을 누르면 다시 시작", {
+      fontFamily: "sans-serif", fontSize: "24px", color: "#fff"
+    }).setOrigin(0.5);
+
     this.input.once("pointerup", () => {
-      this.registry.set("currentStage", 1);
-      this.registry.set("pieState", null);
-      this.registry.set("scoreSummary", { total:0, good:0, bad:0 });
+      // 초기화하고 메인메뉴로
+      setGameState({ stageId: 1, kitchen: { pieState:null, pieReady:false }, result: undefined });
       this.scene.start("MainMenu");
     });
   }
