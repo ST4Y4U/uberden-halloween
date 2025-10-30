@@ -60,6 +60,11 @@
         "happy": "client_levin_happy",
         "angry": "client_levin_angry"
       },
+      "preDialogue": [
+        { "who": "client", "text": "안녕? 이제 막 오픈했나보네?", "sprite": "standard" },
+        { "who": "player", "text": "네, 맞아요. 근데 아직도 어떻게 하는지 잘 모르겠어요..." },
+        { "who": "client", "text": "그럼 내가 특별히 알려줄게! 내가 먹을 파이도 만들 겸~", "sprite": "happy" }
+      ],
       "dialogue": [
         {
           "id": "d1",
