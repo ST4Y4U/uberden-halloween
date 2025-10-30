@@ -60,13 +60,44 @@
         "happy": "client_lorica_happy",
         "angry": "client_lorica_angry"
       },
+      "dialogue": [
+        {
+          "id": "d1",
+          "who": "client",
+          "text": "새콤한걸로 줘요! 알록달록하게 꾸며주시구요!",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d2" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "아이 참, 붉은 색 열매 있잖아요! 그리고 네모네모나게 있는 모양에 알록달록한 설탕 덩어리까지!",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d3" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "우씨. 놀리는거죠! 라즈베리 말이예요! 그 위에 격자 무늬에 스프링클 올려달라구요!",
+          "sprite": "standard",
+          "choices": [
+            { "label": "네", "next": "end" }
+          ]
+        },
+      ],
       "order": {
         "filling": "pie_jam_raspberry",
         "needsLattice": true,
         "toppings": ["pie_ingredient_sprinkle"]
       },
-      "successLine": { "who": "client", "text": "맛있다냥!!!!" },
-      "failLine": { "who": "client", "text": "이걸 먹으라고 주는거야!?!?" }
+      "successLine": { "who": "client", "text": "히히, 토끼씨는 좋은 동물이에요!!!!", "sprite": "happy" },
+      "failLine": { "who": "client", "text": "퉷, 맛없어!!!!!", "sprite": "angry" }
     }
   ],
   "nextStage": 5
