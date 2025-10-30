@@ -15,7 +15,7 @@ async function fetchJson(url:string){
   return r.json();
 }
 
-// ✅ Vite의 BASE_URL을 이용하면 로컬/깃허브페이지 모두 안전
+// Vite의 BASE_URL을 이용하면 로컬/깃허브페이지 모두 안전
 const BASE = (import.meta as any).env?.BASE_URL ?? "/";
 
 export async function loadStageData(stageId:number): Promise<StageData> {
