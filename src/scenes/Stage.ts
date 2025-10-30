@@ -75,9 +75,15 @@ export default class Stage extends Phaser.Scene {
     this.input.topOnly = true;
     this.input.dragDistanceThreshold = 8;
 
-    this.add.image(640, 360, "kitchen_background").setDepth(-10);
-    this.boardImg = this.add.image(BOARD_POS.x, BOARD_POS.y, "pie_cuttingboard").setDepth(10).setVisible(true);
+    // create() 내부 맨 위 부분 (배경을 확실히 맨 뒤로)
+    const bg = this.add.image(640, 360, "kitchen_background")
+      .setOrigin(0.5)
+      .setDepth(-1000); // 완전히 맨 뒤로 고정
 
+// 도마는 항상 위 (항상 보이게 유지)
+    this.boardImg = this.add.image(BOARD_POS.x, BOARD_POS.y, "pie_cuttingboard")
+      .setDepth(10)
+      .setVisible(true);
     // 파이 컨테이너
     this.pieGroup = this.add.container(BOARD_POS.x, BOARD_POS.y).setDepth(22).setVisible(false);
     this.pieBottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_raw").setVisible(false);
