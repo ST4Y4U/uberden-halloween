@@ -89,7 +89,7 @@
           "choices": [
             { "label": "네", "next": "end" }
           ]
-        },
+        }
       ],
       "order": {
         "filling": "pie_jam_pecan",
