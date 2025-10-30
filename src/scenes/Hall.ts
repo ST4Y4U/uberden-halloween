@@ -2,22 +2,11 @@ import Phaser from "phaser";
 
 type Who = "client" | "player";
 type Line = { who: Who; text: string; sprite?: string };
-type Choice = { label: string; next: string }; // id or "end"
+type Choice = { label: string; next: string };
 type DialogueNode = { id: string; who: Who; text: string; sprite?: string; choices?: Choice[] };
 
 export default class Hall extends Phaser.Scene {
-  constructor() { super("Hall"); }
-
-  private POS = {
-    background: { x: 640, y: 360, depth: -1000 },
-    counter:    { x: 640, y: 360, depth: 10 },
-    client:     { x: 491, y: 298, depth: 1 },
-    board:      { x: 820, y: 420, depth: 12 },
-    pie:        { x: 820, y: 420, depth: 13 },
-    textbox:    { x: 960, y: 305, depth: 20 },
-    myTextbox:  { x: 325, y: 550, depth: 22 },
-    toKitchen:  { x: 1184, y: 648, depth: 10000 }
-  } as const;
+  constructor(){ super("Hall"); }
 
   private COLOR_CLIENT = "#140605";
   private COLOR_PLAYER = "#F7E2B2";
@@ -29,10 +18,19 @@ export default class Hall extends Phaser.Scene {
   private textbox!: Phaser.GameObjects.Image;
   private myTextbox!: Phaser.GameObjects.Image;
   private toKitchenArrow!: Phaser.GameObjects.Image;
-
   private choiceButtons: Phaser.GameObjects.Container[] = [];
 
-  preload() {
+  // 좌표: 네가 준 값 반영
+  private POS = {
+    clientStand: { x: 491, y: 298, depth: 1 },
+    textClient:  { x: 775, y: 205 }, // 손님 말풍선 내 텍스트 중심
+    textPlayer:  { x: 125, y: 483 }, // 플레이어 말풍선 내 텍스트 중심
+    wrapClient:  460,                // 필요시 조정 전달
+    wrapPlayer:  460,
+    toKitchen:   { x: 1184, y: 648, depth: 10000 }
+  };
+
+  preload(){
     const cur = this.registry.get("currentStage") || 1;
     this.load.json("stageData", `assets/data/stage0${cur}.json`);
 
@@ -42,12 +40,12 @@ export default class Hall extends Phaser.Scene {
     this.load.image("hall_mytextbox",   "assets/images/hall_mytextbox.png");
     this.load.image("hall_arrow",       "assets/images/hall_arrow.png");
 
-    // 미리보기용
-    this.load.image("pie_cuttingboard",   "assets/images/pie_cuttingboard.png");
-    this.load.image("pie_bottom_raw",     "assets/images/pie_bottom_raw.png");
-    this.load.image("pie_bottom_cooked",  "assets/images/pie_bottom_cooked.png");
-    this.load.image("pie_top_raw",        "assets/images/pie_top_raw.png");
-    this.load.image("pie_top_cooked",     "assets/images/pie_top_cooked.png");
+    // 미리보기용 파이
+    this.load.image("pie_cuttingboard", "assets/images/pie_cuttingboard.png");
+    this.load.image("pie_bottom_raw",   "assets/images/pie_bottom_raw.png");
+    this.load.image("pie_bottom_cooked","assets/images/pie_bottom_cooked.png");
+    this.load.image("pie_top_raw",      "assets/images/pie_top_raw.png");
+    this.load.image("pie_top_cooked",   "assets/images/pie_top_cooked.png");
 
     const fills = ["pumpkin","raspberry","blueberry","strawberry","pecan","apple","magic"];
     for (const f of fills) this.load.image(`pie_jam_${f}`, `assets/images/pie_jam_${f}.png`);
@@ -55,31 +53,40 @@ export default class Hall extends Phaser.Scene {
     this.load.image("pie_ingredient_sprinkle",    "assets/images/pie_ingredient_sprinkle.png");
     this.load.image("pie_ingredient_sugarpowder", "assets/images/pie_ingredient_sugarpowder.png");
 
-    // 손님 스프라이트 세트
     const names = ["levin","cheongbi","liora","lorica","sonya","hide"];
     const states = ["standard","happy","angry","changed"];
     for (const n of names) for (const s of states) {
       this.load.image(`client_${n}_${s}`, `assets/images/client_${n}_${s}.png`);
     }
+
+    this.load.on("loaderror", (file:any) => console.warn("[Hall] loaderror:", file?.key, file?.url));
   }
 
-  create() {
-    this.stageData = this.cache.json.get("stageData");
+  create(){
+    const data = this.cache.json.get("stageData");
+    if (!data){
+      this.add.text(640,360,"stage 데이터 로드 실패\n/assets/data/stage0N.json 확인",{
+        fontFamily:"sans-serif", fontSize:"24px", color:"#F7E2B2", align:"center", wordWrap:{width:800}
+      }).setOrigin(0.5);
+      this.time.delayedCall(1500, ()=> this.scene.start("MainMenu"));
+      return;
+    }
+    this.stageData = data;
     const H = this.stageData.layout?.hall ?? {};
     const UI = this.stageData.ui ?? {};
     this.customer = this.stageData.customers?.[0];
 
     // 배경/카운터
-    this.add.image(this.POS.background.x, this.POS.background.y, "hall_background").setDepth(this.POS.background.depth);
-    this.add.image(this.POS.counter.x,    this.POS.counter.y,    "hall_counter").setDepth(this.POS.counter.depth);
+    this.add.image(640, 360, "hall_background").setDepth(-1000);
+    this.add.image(640, 360, "hall_counter").setDepth(10);
 
     // 손님
     const clientTex = this.customer?.sprites?.standard || "client_levin_standard";
-    this.client = this.add.image(H.standX ?? this.POS.client.x, H.standY ?? this.POS.client.y, clientTex).setDepth(this.POS.client.depth);
+    this.client = this.add.image(H.standX ?? this.POS.clientStand.x, H.standY ?? this.POS.clientStand.y, clientTex).setDepth(this.POS.clientStand.depth);
 
     // 도마 + 미리보기
-    this.add.image(this.POS.board.x, this.POS.board.y, "pie_cuttingboard").setDepth(this.POS.board.depth);
-    const preview = this.add.container(this.POS.pie.x, this.POS.pie.y).setDepth(this.POS.pie.depth).setVisible(false);
+    this.add.image(820, 420, "pie_cuttingboard").setDepth(12);
+    const preview = this.add.container(820, 420).setDepth(13).setVisible(false);
     const pvBottom = this.add.image(0, -90, "pie_bottom_raw").setVisible(false);
     const pvJam    = this.add.image(0, -90, "pie_jam_apple").setVisible(false);
     const pvTop    = this.add.image(0, -90, "pie_top_raw").setVisible(false);
@@ -87,55 +94,44 @@ export default class Hall extends Phaser.Scene {
     this.renderPiePreview(preview, pvBottom, pvJam, pvTop);
 
     // 텍스트박스
-    this.textbox = this.add.image(this.POS.textbox.x, this.POS.textbox.y, "hall_textbox")
-      .setDepth(this.POS.textbox.depth).setVisible(false).setInteractive({ useHandCursor: true });
-    this.myTextbox = this.add.image(this.POS.myTextbox.x, this.POS.myTextbox.y, "hall_mytextbox")
-      .setDepth(this.POS.myTextbox.depth).setVisible(false).setInteractive({ useHandCursor: true });
+    this.textbox = this.add.image(960, 305, "hall_textbox").setDepth(20).setVisible(false).setInteractive({ useHandCursor: true });
+    this.myTextbox = this.add.image(325, 550, "hall_mytextbox").setDepth(22).setVisible(false).setInteractive({ useHandCursor: true });
 
-    // 홀→주방 화살표
+    // 주방 이동 화살표(주문 대화 중엔 선택지 우선)
     const toK = UI.arrowToKitchen ?? this.POS.toKitchen;
     this.toKitchenArrow = this.add.image(toK.x, toK.y, "hall_arrow")
       .setDepth(toK.depth ?? this.POS.toKitchen.depth)
       .setInteractive({ useHandCursor: true })
       .on("pointerup", () => {
-        if (this.choiceButtons.length > 0) return; // 주문대화 중엔 무시
+        if (this.choiceButtons.length > 0) return;
         this.scene.start("Stage");
       });
 
-    // 주방에서 방금 돌아왔다면 → 판정
+    // 주방에서 방금 돌아왔으면 → 판정
     if (this.registry.get("cameFromKitchen") === true) {
       this.registry.set("cameFromKitchen", false);
       this.runJudgeFlow();
       return;
     }
 
-    // 프리대화 → 주문대화(선택지)
+    // 프리 대화 → 주문 대화
     const pre: Line[] = this.customer?.preDialogue ?? [];
     const dlg: DialogueNode[] = this.customer?.dialogue ?? [];
     if (pre.length > 0) {
-      this.runLinearDialogue(pre, () => {
-        if (dlg.length > 0) this.runDialogueWithChoices(dlg);
-      });
+      this.runLinearDialogue(pre, () => { if (dlg.length > 0) this.runDialogueWithChoices(dlg); });
     } else if (dlg.length > 0) {
       this.runDialogueWithChoices(dlg);
     }
   }
 
-  // 선형(클릭) 대화
-  private runLinearDialogue(lines: Line[], onDone?: () => void) {
+  // 선형(클릭 진행)
+  private runLinearDialogue(lines: Line[], onDone?: () => void){
     let i = 0;
     const next = () => {
-      if (i >= lines.length) {
-        this.hideBoxes();
-        onDone?.();
-        return;
-      }
+      if (i >= lines.length){ this.hideBoxes(); onDone?.(); return; }
       const { who, text, sprite } = lines[i++];
       const isClient = (who === "client");
-
-      if (isClient && sprite && this.customer?.sprites?.[sprite]) {
-        this.client.setTexture(this.customer.sprites[sprite]);
-      }
+      if (isClient && sprite && this.customer?.sprites?.[sprite]) this.client.setTexture(this.customer.sprites[sprite]);
       this.showLine(isClient, text);
       this.textbox.removeAllListeners("pointerup");
       this.myTextbox.removeAllListeners("pointerup");
@@ -145,111 +141,80 @@ export default class Hall extends Phaser.Scene {
     next();
   }
 
-  // 선택지 대화(스무고개)
-  private runDialogueWithChoices(dlg: DialogueNode[], onDone?: () => void) {
+  // 스무고개(선택지)
+  private runDialogueWithChoices(dlg: DialogueNode[], onDone?: () => void){
     const map = new Map<string, DialogueNode>();
     dlg.forEach(n => map.set(n.id, n));
     let curId = dlg[0].id;
 
     const showNode = (node: DialogueNode) => {
       const isClient = (node.who === "client");
-      if (isClient && node.sprite && this.customer?.sprites?.[node.sprite]) {
-        this.client.setTexture(this.customer.sprites[node.sprite]);
-      }
+      if (isClient && node.sprite && this.customer?.sprites?.[node.sprite]) this.client.setTexture(this.customer.sprites[node.sprite]);
       this.showLine(isClient, node.text);
 
       this.clearChoices();
-      const choices = node.choices ?? [{ label: "네", next: "end" }];
+      const choices = node.choices ?? [{ label:"네", next:"end" }];
       this.renderChoices(choices, (nextId) => {
-        if (nextId === "end") {
-          this.hideBoxes();
-          this.clearChoices();
-          onDone?.();
-          return;
-        }
-        const next = map.get(nextId);
-        if (!next) {
-          this.hideBoxes();
-          this.clearChoices();
-          onDone?.();
-          return;
-        }
-        curId = next.id;
-        showNode(next);
+        if (nextId === "end"){ this.hideBoxes(); this.clearChoices(); onDone?.(); return; }
+        const nx = map.get(nextId);
+        if (!nx){ this.hideBoxes(); this.clearChoices(); onDone?.(); return; }
+        curId = nx.id; showNode(nx);
       });
     };
 
     showNode(map.get(curId)!);
   }
 
-  private renderChoices(choices: Choice[], onPick: (nextId: string) => void) {
-    const baseY = this.POS.textbox.y + 80;
+  private renderChoices(choices: Choice[], onPick:(nextId:string)=>void){
+    const baseY = 305 + 80; // 손님 텍스트박스 기준
     const gap = 220;
     this.choiceButtons = [];
 
     choices.forEach((c, i) => {
-      const x = this.POS.textbox.x + (i - (choices.length - 1) / 2) * gap;
+      const x = 960 + (i - (choices.length - 1)/2) * gap;
       const container = this.add.container(x, baseY).setDepth(26);
-      const bg = this.add.rectangle(0, 0, 180, 48, 0x2b1a3a, 0.9)
-        .setStrokeStyle(2, 0x6E2B8B)
-        .setInteractive({ useHandCursor: true });
-      const label = this.add.text(0, 0, c.label, {
-        fontFamily: "sans-serif", fontSize: "22px", color: "#F7E2B2"
-      }).setOrigin(0.5);
+      const bg = this.add.rectangle(0, 0, 180, 48, 0x2b1a3a, 0.9).setStrokeStyle(2, 0x6E2B8B).setInteractive({ useHandCursor: true });
+      const label = this.add.text(0, 0, c.label, { fontFamily:"sans-serif", fontSize:"22px", color:"#F7E2B2" }).setOrigin(0.5);
       container.add([bg, label]);
       bg.on("pointerup", () => onPick(c.next));
       this.choiceButtons.push(container);
     });
   }
 
-  private clearChoices() {
-    this.choiceButtons.forEach(c => c.destroy());
-    this.choiceButtons = [];
-  }
+  private clearChoices(){ this.choiceButtons.forEach(c=>c.destroy()); this.choiceButtons = []; }
 
-  private showLine(isClient: boolean, text: string) {
-  // 색상 지정
+  private showLine(isClient:boolean, text:string){
     const color = isClient ? this.COLOR_CLIENT : this.COLOR_PLAYER;
-
-  // 말풍선 토글
     this.textbox.setVisible(isClient);
     this.myTextbox.setVisible(!isClient);
-
-  // 기존 텍스트 제거
     this.children.getByName("dialogText")?.destroy();
 
-  // 각 대화 주체별 좌표 지정
-    const pos = isClient
-      ? { x: 775, y: 205 }   // 손님 말풍선 내부 중앙
-      : { x: 125, y: 483 };  // 플레이어 말풍선 내부 중앙
+    const pos = isClient ? { x:this.POS.textClient.x, y:this.POS.textClient.y, w:this.POS.wrapClient }
+                         : { x:this.POS.textPlayer.x, y:this.POS.textPlayer.y, w:this.POS.wrapPlayer };
 
-  // 텍스트 출력
     this.add.text(pos.x, pos.y, text, {
-      fontFamily: "sans-serif",
-      fontSize: "32px",
+      fontFamily:"sans-serif",
+      fontSize:"32px",
       color,
-      wordWrap: { width: 460, useAdvancedWrap: true }, // ← wordWrap.width는 나중에 조정 가능
-      align: "center"
-    })
-    .setOrigin(0.5)
-    .setDepth(25)
-    .setName("dialogText");
+      wordWrap: { width: pos.w, useAdvancedWrap:true },
+      align:"center"
+    }).setOrigin(0.5).setDepth(25).setName("dialogText");
   }
 
-  private hideBoxes() {
+  private hideBoxes(){
     this.textbox.setVisible(false);
     this.myTextbox.setVisible(false);
     this.children.getByName("dialogText")?.destroy();
   }
 
-  // 판정 + 에필로그
-  private runJudgeFlow() {
+  // 판정 → 통계 누적 → 다음/엔딩
+  private runJudgeFlow(){
     const C = this.customer;
     const stage = this.stageData;
     const pie = this.registry.get("pieState");
 
-    if (!pie || !pie.cooked) {
-      const lines: Line[] = [C?.failLine ?? { who: "client", text: "…아직 준비가 안 된 모양이군." }];
+    if (!pie || !pie.cooked){
+      const lines: Line[] = [C?.failLine ?? { who:"client", text:"…아직 준비가 안 된 모양이군." }];
       if (stage.epilogueFail) lines.push(...stage.epilogueFail);
       this.playLinesThenResult(lines, false);
       return;
@@ -260,75 +225,66 @@ export default class Hall extends Phaser.Scene {
 
     const fillingOk = isFinal ? (pie.filling === "pie_jam_magic") : (pie.filling === o.filling);
     const latticeOk  = o.ignoreLattice  || pie.lattice === o.needsLattice || (isFinal && o.ignoreLattice === true);
-    const toppingOk  = o.ignoreToppings || (o.toppings ? o.toppings.every((t: string) => pie.toppings.includes(t)) : true) || (isFinal && o.ignoreToppings === true);
+    const toppingOk  = o.ignoreToppings || (o.toppings ? o.toppings.every((t:string)=> pie.toppings.includes(t)) : true) || (isFinal && o.ignoreToppings === true);
 
     const ok = pie.cooked && fillingOk && latticeOk && toppingOk;
 
-    if (오케이) {
-      const lines: Line[] = [C?.successLine ?? { who: "client", text: "좋아." }];
+    if (오케이){
+      const lines: Line[] = [C?.successLine ?? { who:"client", text:"좋아." }];
       if (stage.epilogueSuccess) lines.push(...stage.epilogueSuccess);
       this.playLinesThenResult(lines, true);
     } else {
-      const lines: Line[] = [C?.failLine ?? { who: "client", text: "유감이군." }];
+      const lines: Line[] = [C?.failLine ?? { who:"client", text:"유감이군." }];
       if (stage.epilogueFail) lines.push(...stage.epilogueFail);
       this.playLinesThenResult(lines, false);
     }
   }
 
-  private playLinesThenResult(lines: Line[], isSuccess: boolean) {
-  let i = 0;
-  const next = () => {
-    if (i >= lines.length) {
-      this.hideBoxes();
+  private playLinesThenResult(lines: Line[], isSuccess: boolean){
+    let i = 0;
+    const next = () => {
+      if (i >= lines.length){
+        this.hideBoxes();
 
-      // ✅ 통계 누적 코드 (여기에 추가)
-      const summary = this.registry.get("scoreSummary") || { total: 0, good: 0, bad: 0 };
-      summary.total += 1;
-      if (isSuccess) summary.good += 1;
-      else summary.bad += 1;
-      this.registry.set("scoreSummary", summary);
-      // ✅ 통계 누적 끝
+        // ✅ 통계 누적 (정확히 여기)
+        const summary = this.registry.get("scoreSummary") || { total:0, good:0, bad:0 };
+        summary.total += 1;
+        if (isSuccess) summary.good += 1; else summary.bad += 1;
+        this.registry.set("scoreSummary", summary);
 
-      // 마지막 스테이지인지 확인
-      const isLast = (this.stageData?.id === 7);
-
-      if (isLast) {
-        this.scene.start("Result"); // 엔딩으로
-      } else {
-        const nextStage = (this.stageData?.id || 1) + 1;
-        this.registry.set("currentStage", nextStage);
-        this.registry.set("pieState", null);
-        this.scene.start("Hall"); // 다음 스테이지로
+        const isLast = (this.stageData?.id === 7);
+        if (isLast){
+          this.scene.start("Result");
+        } else {
+          const nextStage = (this.stageData?.id || 1) + 1;
+          this.registry.set("currentStage", nextStage);
+          this.registry.set("pieState", null);
+          this.scene.start("Hall");
+        }
+        return;
       }
-      return;
-    }
 
-    const { who, text, sprite } = lines[i++];
-    const isClient = (who === "client");
-    if (isClient && sprite && this.customer?.sprites?.[sprite]) {
-      this.client.setTexture(this.customer.sprites[sprite]);
-    }
-    this.showLine(isClient, text);
-    this.textbox.removeAllListeners("pointerup");
-    this.myTextbox.removeAllListeners("pointerup");
-    this.textbox.on("pointerup", next);
-    this.myTextbox.on("pointerup", next);
-  };
-  next();
-}
-  // 미리보기
-  private renderPiePreview(preview: Phaser.GameObjects.Container, pvBottom: Phaser.GameObjects.Image, pvJam: Phaser.GameObjects.Image, pvTop: Phaser.GameObjects.Image) {
-    const state: any = this.registry.get("pieState");
-    if (state && state.hasDough) {
+      const { who, text, sprite } = lines[i++];
+      const isClient = (who === "client");
+      if (isClient && sprite && this.customer?.sprites?.[sprite]) this.client.setTexture(this.customer.sprites[sprite]);
+      this.showLine(isClient, text);
+      this.textbox.removeAllListeners("pointerup");
+      this.myTextbox.removeAllListeners("pointerup");
+      this.textbox.on("pointerup", next);
+      this.myTextbox.on("pointerup", next);
+    };
+    next();
+  }
+
+  private renderPiePreview(preview: Phaser.GameObjects.Container, pvBottom: Phaser.GameObjects.Image, pvJam: Phaser.GameObjects.Image, pvTop: Phaser.GameObjects.Image){
+    const state:any = this.registry.get("pieState");
+    if (state && state.hasDough){
       preview.setVisible(true);
       pvBottom.setTexture(state.cooked ? "pie_bottom_cooked" : "pie_bottom_raw").setVisible(true);
       if (state.filling) pvJam.setTexture(state.filling).setVisible(true); else pvJam.setVisible(false);
       if (state.lattice) pvTop.setTexture(state.cooked ? "pie_top_cooked" : "pie_top_raw").setVisible(true); else pvTop.setVisible(false);
     } else {
-      preview.setVisible(false);
-      pvBottom.setVisible(false);
-      pvJam.setVisible(false);
-      pvTop.setVisible(false);
+      preview.setVisible(false); pvBottom.setVisible(false); pvJam.setVisible(false); pvTop.setVisible(false);
     }
   }
 }
