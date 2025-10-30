@@ -60,6 +60,37 @@
         "happy": "client_liona_happy",
         "angry": "client_liona_angry"
       },
+      "dialogue": [
+        {
+          "id": "d1",
+          "who": "client",
+          "text": "저는 견과류가 좋습니다. 알록달록한 건 싫습니다.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d2" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "복잡하고 알록달록한 거 말고 전부 토핑으로 올라갔으면 좋겠습니다.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d3" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "피칸 파이에 슈가파우더와 체리만 올려주십시오.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "네", "next": "end" }
+          ]
+        },
+      ],
       "order": {
         "filling": "pie_jam_pecan",
         "needsLattice": false,
