@@ -10,18 +10,27 @@ export interface StageData {
 }
 
 async function fetchJson(url:string){
-  const r = await fetch(url);
+  console.log("[stage json try]", url);
+  const r = await fetch(url, { cache: "no-cache" });
   if (!r.ok) throw new Error(`HTTP ${r.status} @ ${url}`);
   return r.json();
 }
 
-// ✅ Vite BASE_URL 기반으로 동작
-const BASE = (import.meta as any).env?.BASE_URL ?? "/";
+// ✅ baseURI를 기준으로 항상 public/ 기준 경로를 만듦
+function urlFromBase(path: string): string {
+  return new URL(path.replace(/^\/+/, ""), document.baseURI).toString();
+}
 
 export async function loadStageData(stageId:number): Promise<StageData> {
   const name = `stage0${stageId}.json`;
-  const p1 = `${BASE}assets/data/${name}`;   // ✅ 1순위: public/assets/data
-  const p2 = `${BASE}data/${name}`;           // 2순위: public/data (옛 구조 대비)
+  // 1순위: public/assets/data
+  const p1 = urlFromBase(`assets/data/${name}`);
+  // 2순위: public/data (예전 구조 호환)
+  const p2 = urlFromBase(`data/${name}`);
+
   try { return await fetchJson(p1); }
-  catch { return await fetchJson(p2); }
+  catch (e1) {
+    console.warn("[stage json fallback]", e1);
+    return await fetchJson(p2);
+  }
 }
