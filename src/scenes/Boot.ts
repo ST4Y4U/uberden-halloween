@@ -21,9 +21,9 @@ export default class Boot extends Phaser.Scene {
     this.load.image("pie_top_cooked",   "assets/images/pie_top_cooked.png");
 
     // 엔딩 이미지(파일명: ending_*)
-    this.load.image("ending_good",   "assets/images/ending_good.png");
-    this.load.image("ending_normal", "assets/images/ending_normal.png");
-    this.load.image("ending_bad",    "assets/images/ending_bad.png");
+    this.load.image("ending_good",   "assets/images/ending_good.webp");
+    this.load.image("ending_normal", "assets/images/ending_normal.webp");
+    this.load.image("ending_bad",    "assets/images/ending_bad.webp");
 
     // 손님 스프라이트(표정 세트)
     const names = ["levin","cheongbi","liora","lorica","sonya","hide"];
