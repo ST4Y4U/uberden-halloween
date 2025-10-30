@@ -143,8 +143,16 @@ export default class Hall extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(25).setName("dialogText");
     };
 
-    this.textboxArrow.removeAllListeners("pointerup");
-    this.textboxArrow.on("pointerup", draw);
+    // 말풍선 클릭 시 다음으로 넘어가기
+    this.textbox.removeAllListeners("pointerup");
+    this.myTextbox.removeAllListeners("pointerup");
+
+    this.textbox.setInteractive({ useHandCursor: true });
+    this.myTextbox.setInteractive({ useHandCursor: true });
+
+    this.textbox.on("pointerup", draw);
+    this.myTextbox.on("pointerup", draw);
+
     draw();
   }
 }
