@@ -7,10 +7,10 @@ import { getGameState, recordEvaluation, advanceStage, computeEnding } from "../
 const POS = {
   background: { x: 640, y: 360 },
   counter: { x: 640, y: 360 },
-  client: { x: 320, y: 420 },
+  client: { x: 480, y: 290 },
   textboxClient: { x: 960, y: 305, textX: 775, textY: 205 },
   textboxPlayer: { x: 325, y: 550, textX: 125, textY: 483 },
-  arrowKitchen: { x: 120, y: 640 }
+  arrowKitchen: { x: 1210, y: 625 }
 };
 
 export default class Hall extends Phaser.Scene {
@@ -50,7 +50,7 @@ export default class Hall extends Phaser.Scene {
       fontFamily: "sans-serif",
       fontSize: "28px",
       color: "#140605",
-      wordWrap: { width: 500 },   // ← 여기 값 줄바꿈 폭
+      wordWrap: { width: 400 },   // ← 여기 값 줄바꿈 폭
       lineSpacing: 6              // ← 줄 간격
     }).setDepth(31).setVisible(false);
 
@@ -58,7 +58,7 @@ export default class Hall extends Phaser.Scene {
       fontFamily: "sans-serif",
       fontSize: "28px",
       color: "#F7E2B2",
-      wordWrap: { width: 460 },   // ← 플레이어 줄바꿈 폭
+      wordWrap: { width: 360 },   // ← 플레이어 줄바꿈 폭
       lineSpacing: 8
     }).setDepth(32).setVisible(false);
 
