@@ -1,6 +1,6 @@
 import Phaser from "phaser";
-import { loadStageData, StageData, Line, DialogNode, OrderRule } from "../data/loadStage";
-import { getGameState, setGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "../data/state";
+import { loadStageData, StageData, Line, DialogNode, OrderRule } from "../data/loadStage.ts";
+import { getGameState, setGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "../data/state.ts";
 
 // 좌표 수동 지정
 const POS = {
