@@ -7,6 +7,7 @@ const OVEN_ZONE   = { x: 1040, y: 170, w: 356, h: 246 };
 const BURN_ZONE   = { x: 1040, y: 440, w: 285, h: 60 };
 const TIMER_POS   = { x: 1040, y: 200 };
 const DOUGH_SHELF = { x: 680, y: 310, w: 140, h: 100 };
+const HALL_ARROW_POS = { x: 96, y: 648 };
 
 const BASKETS = {
   pumpkin:   { x: 146, y: 140, w: 120, h: 110 },
@@ -54,6 +55,7 @@ export default class Stage extends Phaser.Scene {
     this.load.image("pie_bottom_cooked", "assets/images/pie_bottom_cooked.png");
     this.load.image("pie_top_raw", "assets/images/pie_top_raw.png");
     this.load.image("pie_top_cooked", "assets/images/pie_top_cooked.png");
+    this.load.image("kitchen_arrow", "assets/images/kitchen_arrow.png");
 
     const fills = ["pumpkin","raspberry","blueberry","strawberry","pecan","apple","magic"];
     for (const f of fills) {
@@ -93,6 +95,12 @@ export default class Stage extends Phaser.Scene {
     this.ovenTimer = this.add.image(TIMER_POS.x, TIMER_POS.y, "kitchen_oven_timer_1").setDepth(20).setVisible(false);
     this.magicLockImg = this.add.image(BASKETS.magic.x, BASKETS.magic.y, "kitchen_magic_lock").setDepth(18).setVisible(true);
 
+    this.add.image(HALL_ARROW_POS.x, HALL_ARROW_POS.y, "kitchen_arrow")
+      .setOrigin(0.5)
+      .setDepth(200)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => this.scene.start("Hall"));
+    
     const attachSpawnDrag=(zone:any,getKey:()=>string,onDrop:(t:Phaser.GameObjects.Image)=>void)=>{
       let token:Phaser.GameObjects.Image|null=null;
       const move=(p:any)=>{if(token)token.setPosition(p.worldX,p.worldY);};
