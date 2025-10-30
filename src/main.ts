@@ -15,5 +15,5 @@ new Phaser.Game({
     width: 1280,
     height: 720
   },
-  scene: [Boot, MainMenu, Stage, Result, Hall]
+  scene: [Boot, MainMenu, Hall, Stage, Result]
 });
