@@ -71,40 +71,40 @@ export default class Stage extends Phaser.Scene {
 
     // 최소 자산 로드 (네가 올린 키 기준)
     // UI
-    this.load.image("hall_arrow", "assets/images/ui/hall_arrow.png");
-    this.load.image("kitchen_arrow", "assets/images/ui/kitchen_arrow.png");
+    this.load.image("hall_arrow", "assets/images/hall_arrow.png");
+    this.load.image("kitchen_arrow", "assets/images/kitchen_arrow.png");
 
     // 보드/파이
-    this.load.image("pie_cuttingboard", "assets/images/pie/pie_cuttingboard.png");
-    this.load.image("pie_bottom_raw", "assets/images/pie/pie_bottom_raw.png");
-    this.load.image("pie_bottom_cooked", "assets/images/pie/pie_bottom_cooked.png");
-    this.load.image("pie_top_raw", "assets/images/pie/pie_top_raw.png");
-    this.load.image("pie_top_cooked", "assets/images/pie/pie_top_cooked.png");
+    this.load.image("pie_cuttingboard", "assets/images/pie_cuttingboard.png");
+    this.load.image("pie_bottom_raw", "assets/images/pie_bottom_raw.png");
+    this.load.image("pie_bottom_cooked", "assets/images/pie_bottom_cooked.png");
+    this.load.image("pie_top_raw", "assets/images/pie_top_raw.png");
+    this.load.image("pie_top_cooked", "assets/images/pie_top_cooked.png");
 
     // 타이머 (4~1)
-    this.load.image("kitchen_oven_timer_4", "assets/images/oven/kitchen_oven_timer_4.png");
-    this.load.image("kitchen_oven_timer_3", "assets/images/oven/kitchen_oven_timer_3.png");
-    this.load.image("kitchen_oven_timer_2", "assets/images/oven/kitchen_oven_timer_2.png");
-    this.load.image("kitchen_oven_timer_1", "assets/images/oven/kitchen_oven_timer_1.png");
+    this.load.image("kitchen_oven_timer_4", "assets/images/kitchen_oven_timer_4.png");
+    this.load.image("kitchen_oven_timer_3", "assets/images/kitchen_oven_timer_3.png");
+    this.load.image("kitchen_oven_timer_2", "assets/images/kitchen_oven_timer_2.png");
+    this.load.image("kitchen_oven_timer_1", "assets/images/kitchen_oven_timer_1.png");
 
     // 재료(트레이 아이콘)
     const fills = ["pumpkin","raspberry","blueberry","strawberry","pecan","apple","magic"];
-    for (const f of fills) this.load.image(`kitchen_ingredient_${f}`, `assets/images/kitchen/kitchen_ingredient_${f}.png`);
+    for (const f of fills) this.load.image(`kitchen_ingredient_${f}`, `assets/images/kitchen_ingredient_${f}.png`);
     // 실제 속(파이에 적용될 이미지)
-    for (const f of fills) this.load.image(`pie_jam_${f}`, `assets/images/fillings/pie_jam_${f}.png`);
+    for (const f of fills) this.load.image(`pie_jam_${f}`, `assets/images/pie_jam_${f}.png`);
 
     // 도우/격자 슬롯 아이콘 (같은 그림이어도 키는 분리)
-    this.load.image("kitchen_ingredient_dough", "assets/images/kitchen/kitchen_ingredient_dough.png");
-    this.load.image("kitchen_ingredient_lattice", "assets/images/kitchen/kitchen_ingredient_lattice.png");
+    this.load.image("kitchen_ingredient_dough", "assets/images/kitchen_ingredient_dough.png");
+    this.load.image("kitchen_ingredient_lattice", "assets/images/kitchen_ingredient_lattice.png");
 
     // 토핑(아이콘=배치 동일)
-    this.load.image("pie_ingredient_cherry", "assets/images/toppings/pie_ingredient_cherry.png");
-    this.load.image("pie_ingredient_sprinkle", "assets/images/toppings/pie_ingredient_sprinkle.png");
-    this.load.image("pie_ingredient_sugarpowder", "assets/images/toppings/pie_ingredient_sugarpowder.png");
+    this.load.image("pie_ingredient_cherry", "assets/images/pie_ingredient_cherry.png");
+    this.load.image("pie_ingredient_sprinkle", "assets/images/pie_ingredient_sprinkle.png");
+    this.load.image("pie_ingredient_sugarpowder", "assets/images/pie_ingredient_sugarpowder.png");
 
     // 매직
-    this.load.image("kitchen_magic_lock", "assets/images/kitchen/kitchen_magic_lock.png");
-    this.load.image("kitchen_magic_key", "assets/images/kitchen/kitchen_magic_key.png");
+    this.load.image("kitchen_magic_lock", "assets/images/kitchen_magic_lock.png");
+    this.load.image("kitchen_magic_key", "assets/images/kitchen_magic_key.png");
 
     // 고객 임시 예시 (stage JSON에 정의된 스프라이트 키를 여기서 로드해도 됨)
     // 실제로는 Boot에서 일괄 로드하거나, Stage에서 개별 로드해도 무방.
