@@ -1,20 +1,31 @@
+// src/scenes/Hall.ts
 import Phaser from "phaser";
 import { loadStageData, StageData, Line, DialogNode, OrderRule } from "../data/loadStage.ts";
 import { getGameState, setGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "../data/state.ts";
 
-// 좌표 수동 지정
+// 위치 수동 지정
 const POS = {
-  background: { x: 640, y: 360 },
-  counter: { x: 640, y: 360 },
-  client: { x: 480, y: 290 },
-  textboxClient: { x: 960, y: 305, textX: 775, textY: 205 },
-  textboxPlayer: { x: 325, y: 550, textX: 125, textY: 483 },
-  arrowKitchen: { x: 1210, y: 625 },
+  background:     { x: 640, y: 360 },
+  counter:        { x: 640, y: 360 },
+  client:         { x: 480, y: 290 },
+  textboxClient:  { x: 960, y: 305, textX: 775, textY: 205 },
+  textboxPlayer:  { x: 325, y: 550, textX: 125, textY: 483 },
+  arrowKitchen:   { x: 1210, y: 625 },
+  hallPie:        { x: 720,  y: 620 }  // 카운터 위 파이 기본 위치
+};
 
-  // 파이를 올려둘 카운터 위치(홀)
-  hallPie:    { x: 720, y: 620 },
-  // 전달 존(손님 영역에서 10% 축소)
-  deliverZone: { x: 480, y: 360, w: Math.floor(531*0.9), h: Math.floor(540*0.9) }
+// 주방과 동일한 파이 시각 오프셋·히트영역
+const PIE_OFFSET = { x: 0, y: -90 };
+const PIE_HIT    = { w: 320, h: 220 };
+
+const DEPTH = {
+  BG: -1000,
+  COUNTER: 12,
+  CLIENT: 10,
+  BOARD: 15, // 도마(필요 시)
+  PIE: 22,
+  UI: 30,
+  CHOICE: 50
 };
 
 export default class Hall extends Phaser.Scene {
@@ -34,53 +45,67 @@ export default class Hall extends Phaser.Scene {
   private dialogQueue: Line[] = [];
   private awaitingChoice = false;
 
-  // 홀에서 들고 있는 파이 표현
+  // 홀 파이 컨테이너
   private hallPieGroup?: Phaser.GameObjects.Container;
-  private hallPieBottom?: Phaser.GameObjects.Image;
-  private hallPieJam?: Phaser.GameObjects.Image;
-  private hallPieTop?: Phaser.GameObjects.Image;
 
-  async create(data: any) {
+  // 배달 영역(손님 스프라이트 기준 90% 축소)
+  private deliverRect!: Phaser.Geom.Rectangle;
+
+  async create() {
     const G = getGameState();
     const stageId = G.stageId || 1;
     this.stageData = await loadStageData(stageId);
 
-    // 배경/클라이언트/카운터
-    this.add.image(POS.background.x, POS.background.y, "hall_background").setDepth(-1000);
-    this.client = this.add.image(POS.client.x, POS.client.y, this.getClientSprite("standard")).setDepth(10);
-    this.add.image(POS.counter.x, POS.counter.y, "hall_counter").setDepth(12);
+    // 배경/손님/카운터
+    this.add.image(POS.background.x, POS.background.y, "hall_background").setDepth(DEPTH.BG);
+    this.client = this.add.image(POS.client.x, POS.client.y, this.getClientSprite("standard")).setDepth(DEPTH.CLIENT);
+    this.add.image(POS.counter.x, POS.counter.y, "hall_counter").setDepth(DEPTH.COUNTER);
+
+    // 배달 영역 계산(손님 스프라이트 실측)
+    {
+      const cb = this.client.getBounds();
+      this.deliverRect = new Phaser.Geom.Rectangle(
+        cb.centerX - cb.width  * 0.45,
+        cb.centerY - cb.height * 0.45,
+        cb.width  * 0.90,
+        cb.height * 0.90
+      );
+    }
 
     // 말풍선
     this.clBox = this.add.image(POS.textboxClient.x, POS.textboxClient.y, "hall_textbox")
-      .setDepth(20).setVisible(false).setInteractive({ useHandCursor:true });
+      .setDepth(DEPTH.UI).setVisible(false).setInteractive({ useHandCursor:true });
     this.myBox = this.add.image(POS.textboxPlayer.x, POS.textboxPlayer.y, "hall_mytextbox")
-      .setDepth(21).setVisible(false).setInteractive({ useHandCursor:true });
+      .setDepth(DEPTH.UI+1).setVisible(false).setInteractive({ useHandCursor:true });
 
     this.clText = this.add.text(POS.textboxClient.textX, POS.textboxClient.textY, "", {
-      fontFamily:"sans-serif", fontSize:"28px", color:"#140605", wordWrap:{ width: 400 }, lineSpacing: 6 }).setDepth(31).setVisible(false);
+      fontFamily:"sans-serif", fontSize:"28px", color:"#140605", wordWrap:{ width: 420 }, lineSpacing: 6
+    }).setDepth(DEPTH.UI+2).setVisible(false);
 
     this.myText = this.add.text(POS.textboxPlayer.textX, POS.textboxPlayer.textY, "", {
-      fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: 360 }, lineSpacing: 8 }).setDepth(32).setVisible(false);
+      fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: 420 }, lineSpacing: 8
+    }).setDepth(DEPTH.UI+3).setVisible(false);
 
     this.clBox.on("pointerup", () => this.advance());
     this.myBox.on("pointerup", () => this.advance());
 
-    // 주방 화살표
+    // 주방으로 이동 화살표
     this.toKitchenArrow = this.add.image(POS.arrowKitchen.x, POS.arrowKitchen.y, "hall_arrow")
-      .setDepth(40).setInteractive({ useHandCursor:true })
+      .setDepth(DEPTH.UI+5).setInteractive({ useHandCursor:true })
       .on("pointerup", () => this.scene.start("Stage"));
 
-    // 들고 온 파이 있으면 카운터에 표시 + 드래그로 손님에게 전달
+    // 들고 온 파이 복원
     if (G.pie?.cooked) {
       this.spawnHallPie(G.pie.filling ?? null, !!G.pie.lattice, G.pie.toppings ?? []);
     }
 
     // 프리 대화 → 주문 대화
     const pre = this.stageData.customers?.[0]?.preDialogue ?? [];
-    this.dialogQueue = [...pre, { who: "client", text: "" } as any];
+    this.dialogQueue = [...pre, { who: "client", text: "" } as any]; // 빈 줄 만나면 주문으로 전환
     this.showNextFromQueue();
   }
 
+  // ===== 대화 처리 =====
   private getClientSprite(face:"standard"|"happy"|"angry"="standard"){
     const C = this.stageData.customers?.[0];
     const s = C?.sprites || {};
@@ -94,13 +119,12 @@ export default class Hall extends Phaser.Scene {
     if (!next.text) { this.beginOrderDialogue(); return; }
 
     if (next.sprite) this.client.setTexture(this.getClientSprite(next.sprite));
-    const who = next.who === "player" ? "player" : "client";
-    if (who === "client") {
-      this.myBox.setVisible(false); this.myText.setVisible(false);
-      this.clBox.setVisible(true);  this.clText.setVisible(true).setText(next.text);
-    } else {
+    if (next.who === "player") {
       this.clBox.setVisible(false); this.clText.setVisible(false);
       this.myBox.setVisible(true);  this.myText.setVisible(true).setText(next.text);
+    } else {
+      this.myBox.setVisible(false); this.myText.setVisible(false);
+      this.clBox.setVisible(true);  this.clText.setVisible(true).setText(next.text);
     }
   }
 
@@ -128,7 +152,7 @@ export default class Hall extends Phaser.Scene {
     const makeChoice = (label:string, nextId:string, offset:number)=>{
       const t = this.add.text(640 + offset, 640, label, {
         fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", backgroundColor:"#6E2B8B"
-      }).setOrigin(0.5).setDepth(50).setInteractive({ useHandCursor:true });
+      }).setOrigin(0.5).setDepth(DEPTH.CHOICE).setInteractive({ useHandCursor:true });
       t.on("pointerup", ()=>{
         this.awaitingChoice = false; this.destroyChoices();
         if (nextId === "end") { this.hideBubbles(); }
@@ -144,45 +168,39 @@ export default class Hall extends Phaser.Scene {
   private hideBubbles(){ this.clBox.setVisible(false); this.clText.setVisible(false); this.myBox.setVisible(false); this.myText.setVisible(false); }
   private advance(){ if (!this.awaitingChoice) this.showNextFromQueue(); }
 
-  // ====== 홀 파이 표시/전달 ======
+  // ===== 파이 표시/전달 =====
   private spawnHallPie(filling: string | null, lattice: boolean, toppings: string[]){
-    const g = this.add.container(POS.hallPie.x, POS.hallPie.y).setDepth(30);
-    const bottom = this.add.image(0, 0, "pie_bottom_cooked");
-    const jam = this.add.image(0, 0, filling ?? "pie_jam_apple").setVisible(!!filling);
-    const top = this.add.image(0, 0, lattice ? "pie_top_cooked" : "pie_top_cooked").setVisible(lattice);
+    const g = this.add.container(POS.hallPie.x, POS.hallPie.y).setDepth(DEPTH.PIE);
+
+    const bottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_cooked").setVisible(true);
+    const jam    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, filling ?? "pie_jam_apple").setVisible(!!filling);
+    const top    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_top_cooked").setVisible(!!lattice);
     g.add([bottom, jam, top]);
 
-    for (const t of toppings) g.add(this.add.image(0,0,t).setDepth(31));
+    for (const t of toppings) {
+      g.add(this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, t).setDepth(DEPTH.PIE+1));
+    }
 
-    // 드래그로 손님 deliverZone에 넣으면 판정
-    g.setSize(220, 220);
-    g.setInteractive();
+    // 드래그(오브젝트 단위 바인딩)
+    g.setSize(PIE_HIT.w, PIE_HIT.h);
+    g.setInteractive(new Phaser.Geom.Rectangle(-PIE_HIT.w/2, -PIE_HIT.h/2, PIE_HIT.w, PIE_HIT.h), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(g, true);
 
-    const dz = new Phaser.Geom.Rectangle(
-      POS.deliverZone.x - POS.deliverZone.w/2,
-      POS.deliverZone.y - POS.deliverZone.h/2,
-      POS.deliverZone.w, POS.deliverZone.h
-    );
-
-    this.input.on("drag", (_p:any, ob:any, nx:number, ny:number)=>{
-      if (ob === g) g.setPosition(nx, ny);
+    g.on("drag", (_pointer: any, dragX: number, dragY: number) => {
+      g.setPosition(dragX, dragY);
     });
-    this.input.on("dragend", (_p:any, ob:any)=>{
-      if (ob !== g) return;
+
+    g.on("dragend", () => {
       const r = g.getBounds();
-      if (Phaser.Geom.Intersects.RectangleToRectangle(r, dz)) {
-        // 판정
-        const ok = this.evaluatePie();
-        // 기록/전환
-        this.afterDeliver(ok);
+      if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
+        const ok = this.evaluatePie();   // 판정
+        this.afterDeliver(오케이);           // 기록/진행
       } else {
-        // 스냅백
         this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
       }
     });
 
-    this.hallPieGroup = g; this.hallPieBottom = bottom; this.hallPieJam = jam; this.hallPieTop = top;
+    this.hallPieGroup = g;
   }
 
   private evaluatePie(): boolean {
@@ -194,24 +212,30 @@ export default class Hall extends Phaser.Scene {
     const pie = G.pie;
     if (!pie || !pie.cooked) return false;
 
-    const fillingOk = isFinal ? (pie.filling === "pie_jam_magic") : (o.filling ? pie.filling === o.filling : true);
-    const latticeOk  = o.ignoreLattice  || (o.needsLattice === undefined ? true : pie.lattice === !!o.needsLattice) || (isFinal && o.ignoreLattice === true);
-    const toppingOk  = o.ignoreToppings || (o.toppings ? o.toppings.every(t => pie.toppings.includes(t)) : true) || (isFinal && o.ignoreToppings === true);
+    const fillingOk = isFinal ? (pie.filling === "pie_jam_magic")
+                              : (o.filling ? pie.filling === o.filling : true);
+
+    const latticeOk  = o.ignoreLattice
+                    || (o.needsLattice === undefined ? true : pie.lattice === !!o.needsLattice)
+                    || (isFinal && o.ignoreLattice === true);
+
+    const toppingOk  = o.ignoreToppings
+                    || (o.toppings ? o.toppings.every(t => pie.toppings.includes(t)) : true)
+                    || (isFinal && o.ignoreToppings === true);
 
     return !!(pie.cooked && fillingOk && latticeOk && toppingOk);
   }
 
   private afterDeliver(ok: boolean){
-    recordEvaluation(ok);
-    clearCarriedPie(); // 파이는 소모됨
+    recordEvaluation(오케이);
+    clearCarriedPie(); // 파이 소모
 
-    // 스테이지 7이면 엔딩으로
     if (this.stageData.id >= 7) {
       const result = computeEnding(); // "good" | "normal" | "bad"
       this.scene.start("Result", { result });
       return;
     }
-    // 다음 스테이지로
+
     advanceStage();
     this.scene.start("Hall");
   }
