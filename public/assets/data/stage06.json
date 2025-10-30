@@ -60,13 +60,44 @@
         "happy": "client_hide_happy",
         "angry": "client_hide_angry"
       },
+      "dialogue": [
+        {
+          "id": "d1",
+          "who": "client",
+          "text": "창가 너머 달과 같이 빛나는 파이를 주도록. 붉은 달도 함께 줘.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d2" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "단 맛이 감돌며 과육이 씹히는 것도 좋겠어.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d3" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "흠... 좀 멍청하군. 달콤한 노란 과육과 그 위에 과육을 가두고 붉은 과육을 올리도록 해.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "네", "next": "end" }
+          ]
+        },
+      ],
       "order": {
         "filling": "pie_jam_apple",
         "needsLattice": true,
         "toppings": ["pie_ingredient_cherry"]
       },
-      "successLine": { "who": "client", "text": "정확히 내가 원하던 맛이야. 완벽하군!" },
-      "failLine": { "who": "client", "text": "이건 내가 주문한 파이가 아닌데?" }
+      "successLine": { "who": "client", "text": "먹을만해.", "sprite": "happy" },
+      "failLine": { "who": "client", "text": "죽고 싶은건가?", "sprite": "angry" }
     }
   ],
   "nextStage": 7
