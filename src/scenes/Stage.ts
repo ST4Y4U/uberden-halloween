@@ -1,5 +1,6 @@
 // src/scenes/Stage.ts
 import Phaser from "phaser";
+import { getGameState, setGameState } from "../data/state";
 
 const BOARD_POS   = { x: 720,  y: 625 };
 const BOARD_HIT_R = 160;
@@ -216,6 +217,14 @@ export default class Stage extends Phaser.Scene {
         if(this.pie.lattice)this.pieTop.setTexture("pie_top_cooked").setVisible(true);
         this.pieGroup.setPosition(BOARD_POS.x,BOARD_POS.y).setVisible(true);
         this.input.setDraggable(this.pieGroup,true);this.isBaking=false;}};
+        const S = getGameState();
+        S.pie = {
+          cooked: this.pie.cooked,
+          filling: this.pie.filling,
+          lattice: this.pie.lattice,
+          toppings: Array.from(this.pie.toppings)
+        };
+        setGameState(S);
     this.time.delayedCall(1000,tick);
   }
 
