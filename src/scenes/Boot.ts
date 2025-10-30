@@ -27,7 +27,7 @@ export default class Boot extends Phaser.Scene {
 
     // 손님 스프라이트(표정 세트)
     const names = ["levin","cheongbi","liora","lorica","sonya","hide"];
-    const states = ["standard","happy","angry", "anxious", "changed"];
+    const states = ["standard","happy","angry","changed"];
     for (const n of names) for (const s of states) {
       this.load.image(`client_${n}_${s}`, `assets/images/client_${n}_${s}.png`);
     }
