@@ -54,8 +54,20 @@
   "customers": [
     {
       "id": "c1",
-      "sprites": { "standard": "client_witch_standard", "happy": "client_witch_happy", "angry": "client_witch_angry" },
-      "order": { "filling": "pie_jam_apple", "needsLattice": true, "toppings": ["pie_ingredient_sugarpowder"], "exactMatch": true }
+      "name": "levin",
+      "sprites": {
+        "standard": "client_levin_standard",
+        "happy": "client_levin_happy",
+        "angry": "client_levin_angry"
+      },
+      "order": {
+        "filling": "pie_jam_pumpkin",
+        "needsLattice": true,
+        "toppings": ["pie_ingredient_sugarpowder","pie_ingredient_cherry","pie_ingredient_sprinkle"]
+      },
+      "successLine": { "who": "client", "text": "정말 완벽하게 숙지했네~ 파이 맛도 아주 좋아!" },
+      "failLine": { "who": "client", "text": "...하는 방법은 알았으니 됐다~" }
     }
-  ]
+  ],
+  "nextStage": 2
 }
