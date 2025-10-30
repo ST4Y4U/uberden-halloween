@@ -31,8 +31,13 @@ export interface StageData {
   epilogueFail?: Line[];
 }
 
+async function tryFetch(url: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('fetch fail ${res.status} ${url}');
+  return res.json();
+}
+
 export async function loadStageData(stageId: number): Promise<StageData> {
-  const res = await fetch(`data/stage0${stageId}.json`);
-  if (!res.ok) throw new Error(`Stage JSON not found: ${stageId}`);
-  return await res.json();
+  const name = 'stage0${stageId}.json';
+  try { return await tryFetch('assets/data/${name}'); } catch {}
 }
