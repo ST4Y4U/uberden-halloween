@@ -110,12 +110,23 @@ export default class Stage extends Phaser.Scene {
     this.boardImg = this.add.image(this.boardPos.x, this.boardPos.y, "pie_cuttingboard").setDepth(DEPTH.BOARD);
 
     // 파이 컨테이너(도마 중심 기준)
+    // 파이 컨테이너(도마 중심 기준)
     this.pieGroup = this.add.container(this.boardPos.x, this.boardPos.y).setDepth(DEPTH.PIE).setVisible(false);
     this.pieBottom = this.add.image(0, 0, "pie_bottom_raw").setVisible(false);
     this.pieJam    = this.add.image(0, 0, "pie_jam_apple").setVisible(false);
     this.pieTop    = this.add.image(0, 0, "pie_top_raw").setVisible(false);
     this.pieGroup.add([this.pieBottom, this.pieJam, this.pieTop]);
-    this.input.setDraggable(this.pieGroup, true);
+
+// ✅ Container는 hit-area가 필요함
+    const r = this.boardPos.r ?? 170;
+    this.pieGroup.setSize(r * 2, r * 2);
+    this.pieGroup.setInteractive(
+      new Phaser.Geom.Circle(0, 0, r),
+      Phaser.Geom.Circle.Contains
+    );
+
+// 이제 드래그 가능
+this.input.setDraggable(this.pieGroup, true);
 
     // 오븐 타이머
     this.ovenTimer = this.add.image(timerPos.x, timerPos.y, this.timerFrames[0]).setDepth(DEPTH.TIMER).setVisible(false);
