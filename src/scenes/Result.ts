@@ -10,13 +10,22 @@ export default class Result extends Phaser.Scene {
   }
 
   create() {
-    // registry에 "endingType" = "good" | "normal" | "bad"
-    const ending: "good" | "normal" | "bad" =
-      this.registry.get("endingType") ?? "normal";
+    const summary = this.registry.get("scoreSummary") || { total: 0, good: 0, bad: 0 };
 
-    this.add.image(640, 360, `ending_${ending}`);
+    let endingType = "normal";
+    if (summary.good === summary.total) endingType = "good";
+    else if (summary.bad === summary.total) endingType = "bad";
+    else endingType = "normal";
 
-    // 클릭하면 메인 메뉴로
-    this.input.once("pointerup", () => this.scene.start("MainMenu"));
+    const key = `ending_${endingType}`;
+    this.add.image(640, 360, key);
+
+    // 클릭하면 게임 재시작
+    this.input.once("pointerup", () => {
+      this.registry.set("currentStage", 1);
+      this.registry.set("pieState", null);
+      this.registry.set("scoreSummary", { total: 0, good: 0, bad: 0 });
+      this.scene.start("MainMenu");
+    });
   }
 }
