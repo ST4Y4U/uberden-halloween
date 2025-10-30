@@ -15,16 +15,13 @@ async function fetchJson(url:string){
   return r.json();
 }
 
-// Vite의 BASE_URL을 이용하면 로컬/깃허브페이지 모두 안전
+// ✅ Vite BASE_URL 기반으로 동작
 const BASE = (import.meta as any).env?.BASE_URL ?? "/";
 
 export async function loadStageData(stageId:number): Promise<StageData> {
   const name = `stage0${stageId}.json`;
-  // 1순위: public/assets/data
-  const p1 = `${BASE}assets/data/${name}`;
-  // 2순위: public/data (혹시 이전 구조가 남아있을 때 대비)
-  const p2 = `${BASE}data/${name}`;
-
+  const p1 = `${BASE}assets/data/${name}`;   // ✅ 1순위: public/assets/data
+  const p2 = `${BASE}data/${name}`;           // 2순위: public/data (옛 구조 대비)
   try { return await fetchJson(p1); }
   catch { return await fetchJson(p2); }
 }
