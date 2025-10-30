@@ -27,11 +27,13 @@ export default class Hall extends Phaser.Scene {
     this.load.image("hall_arrow", "assets/images/hall_arrow.png");
 
     // 모든 손님 스프라이트
-    const names = ["levin", "cheongbi", "l iora", "lorica", "sonya", "hide"];
+    const names = ["levin", "cheongbi", "liora", "lorica", "sonya", "hide"];
     for (const n of names) {
       this.load.image(`client_${n}_standard`, `assets/images/client_${n}_standard.png`);
       this.load.image(`client_${n}_happy`, `assets/images/client_${n}_happy.png`);
       this.load.image(`client_${n}_angry`, `assets/images/client_${n}_angry.png`);
+      this.load.image(`client_${n}_angry`, `assets/images/client_${n}_anxious.png`);
+      this.load.image(`client_${n}_angry`, `assets/images/client_${n}_changed.png`);
     }
   }
 
@@ -39,6 +41,7 @@ export default class Hall extends Phaser.Scene {
     this.add.image(640, 360, "hall_background").setDepth(-1000);
     this.add.image(640, 360, "hall_counter").setDepth(10);
 
+    const H = this.stageData.layout?.hall ?? {};
     const state = getGameState();
     const stageId = state.stageId ?? 1;
 
