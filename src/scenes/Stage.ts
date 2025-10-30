@@ -265,6 +265,17 @@ export default class Stage extends Phaser.Scene {
         setPieState(this.pie.hasDough ? state : null, true);
         this.scene.start("Hall");
       });
+    // create() 말미, 주방 ←→ 홀 전환용
+    const UI = this.registry.get("stageUI") || this.game.registry.get("stageUI") || {};
+    const arrowHall = (this as any).add.image(
+      UI.arrowToHall?.x ?? 96,
+      UI.arrowToHall?.y ?? 648,
+      "kitchen_arrow"
+    ).setDepth(40).setInteractive({ useHandCursor: true });
+
+    arrowHall.on("pointerup", () => {
+      this.scene.start("Hall");
+    });
   }
 
   private bakePie() {
