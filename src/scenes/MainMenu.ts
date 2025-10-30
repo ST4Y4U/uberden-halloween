@@ -1,29 +1,21 @@
+// src/scenes/MainMenu.ts
 import Phaser from "phaser";
 
 export default class MainMenu extends Phaser.Scene {
-  constructor() {
-    super("MainMenu"); // ★ 키 일치
+  constructor() { super("MainMenu"); }
+
+  preload() {
+    this.load.image("mainmenu_background", "assets/images/mainmenu_background.webp");
   }
 
   create() {
-    this.cameras.main.setBackgroundColor("#000000");
+    this.add.image(640, 360, "mainmenu_background").setDepth(-10);
 
-    const title = this.add.text(640, 260, "Uberden Halloween", {
-      fontFamily: "sans-serif",
-      fontSize: "48px",
-      color: "#ffffff"
-    }).setOrigin(0.5);
-
-    this.add.text(640, 330, "Touch to Start", {
-      fontFamily: "sans-serif",
-      fontSize: "24px",
-      color: "#aaaaaa"
-    }).setOrigin(0.5);
-
-    this.tweens.add({ targets: title, alpha: { from: 1, to: 0.4 }, duration: 1000, yoyo: true, repeat: -1 });
-
-    this.input.once("pointerdown", () => {
-      this.scene.start("Hall"); // 다음 턴에 Stage 추가 예정
-    });
+    // 센터 근처 클릭 시 게임 시작
+    const clickZone = this.add.zone(640, 360, 400, 300)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerup", () => {
+        this.scene.start("Hall"); // 바로 홀로 진입
+      });
   }
 }
