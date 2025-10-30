@@ -193,7 +193,7 @@ export default class Stage extends Phaser.Scene {
     });
     this.input.on("dragend",(_p:any,g:any)=>{if(g===this.pieGroup&&!this.isBaking)this.pieGroup.setVisible(true).setPosition(BOARD_POS.x,BOARD_POS.y);});
 
-    const toHallArrow = this.add.image(1220, 640, "kitchen_arrow")
+    const toHallArrow = this.add.image(60, 640, "kitchen_arrow")
       .setDepth(999)
       .setInteractive({ useHandCursor: true });
 
