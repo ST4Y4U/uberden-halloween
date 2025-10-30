@@ -1,6 +1,6 @@
 {
   "id": 1,
-  "name": "Stage 1 (Tutorial)",
+  "name": "Stage 1",
   "bakeTimeSec": 4,
   "ui": {
     "arrowToKitchen": { "x": 1184, "y": 648 },
@@ -60,13 +60,44 @@
         "happy": "client_levin_happy",
         "angry": "client_levin_angry"
       },
+      "dialogue": [
+        {
+          "id": "d1",
+          "who": "client",
+          "text": "우선 가장 첫번째 재료인 호박으로 해줘~ 올라갈 수 있는 건 다 올리고.",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d2" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "호박을 파이 안에 속으로 넣고, 파이 위에 격자 무늬도 올려줘. 토핑은 다 올려주고~",
+          "sprite": "standard",
+          "choices": [
+            { "label": "뭐라구요?", "next": "d3" },
+            { "label": "네", "next": "end" }
+          ]
+        },
+        {
+          "id": "d2",
+          "who": "client",
+          "text": "호박 넣고, 격자 무늬, 스프링클, 슈가파우더, 체리 올려줘~",
+          "sprite": "standard",
+          "choices": [
+            { "label": "네", "next": "end" }
+          ]
+        },
+      ],
       "order": {
         "filling": "pie_jam_pumpkin",
         "needsLattice": true,
         "toppings": ["pie_ingredient_sugarpowder","pie_ingredient_cherry","pie_ingredient_sprinkle"]
       },
-      "successLine": { "who": "client", "text": "정말 완벽하게 숙지했네~ 파이 맛도 아주 좋아!" },
-      "failLine": { "who": "client", "text": "...하는 방법은 알았으니 됐다~" }
+      "successLine": { "who": "client", "text": "정말 완벽하게 숙지했네~ 파이 맛도 아주 좋아!", "sprite": "happy" },
+      "failLine": { "who": "client", "text": "...하는 방법은 알았으니 됐다~", "sprite": "angry" }
     }
   ],
   "nextStage": 2
