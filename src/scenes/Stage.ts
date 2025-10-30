@@ -2,35 +2,35 @@ import Phaser from "phaser";
 
 /** --- 좌표 프리셋 (1280x720 기준, 필요시 숫자만 미세조정) --- */
 // 주방 핵심
-const BOARD_POS   = { x: 900,  y: 560 };  // 도마/파이 중심
+const BOARD_POS   = { x: 720,  y: 625 };  // 도마/파이 중심
 const BOARD_HIT_R = 160;
-const OVEN_ZONE   = { x: 1060, y: 320, w: 220, h: 240 }; // 오븐 도어 영역
-const BURN_ZONE   = { x: 1060, y: 610, w: 260, h: 120 }; // 아래 불통
-const TIMER_POS   = { x: 1050, y: 250 };                 // 타이머 표시
+const OVEN_ZONE   = { x: 1040, y: 170, w: 356, h: 246 }; // 오븐 도어 영역
+const BURN_ZONE   = { x: 1040, y: 440, w: 285, h: 60 }; // 아래 불통
+const TIMER_POS   = { x: 1040, y: 200 };                 // 타이머 표시
 
 // 도우 선반(탭=토글, 드래그=현재 모드 꺼내기)
-const DOUGH_SHELF = { x: 730, y: 540, w: 140, h: 100 };
+const DOUGH_SHELF = { x: 680, y: 310, w: 140, h: 100 };
 
 // 바구니(배경 포함 요소의 대략 중심/크기)
 const BASKETS = {
-  pumpkin:   { x:  220, y: 230, w: 140, h: 110 },
-  raspberry: { x:  440, y: 230, w: 140, h: 110 },
-  blueberry: { x:  660, y: 230, w: 140, h: 110 },
-  strawberry:{ x:  880, y: 230, w: 140, h: 110 },
-  pecan:     { x:  220, y: 380, w: 140, h: 110 },
-  apple:     { x:  440, y: 380, w: 140, h: 110 },
-  magic:     { x:  660, y: 380, w: 140, h: 110 } // 자물쇠 위치도 동일 영역
+  pumpkin:   { x:  146, y: 140, w: 120, h: 110 },
+  raspberry: { x:  325, y: 140, w: 120, h: 110 },
+  blueberry: { x:  500, y: 140, w: 120, h: 110 },
+  strawberry:{ x:  680, y: 140, w: 120, h: 110 },
+  pecan:     { x:  146, y: 310, w: 120, h: 110 },
+  apple:     { x:  325, y: 310, w: 120, h: 110 },
+  magic:     { x:  500, y: 310, w: 120, h: 110 } // 자물쇠 위치도 동일 영역
 };
 
 // 토핑 바구니(하단 좌측)
 const TOPPING_ZONES = {
-  cherry:      { x: 160, y: 620, w: 120, h: 90 },
-  sugarpowder: { x: 310, y: 620, w: 120, h: 90 },
-  sprinkle:    { x: 460, y: 620, w: 120, h: 90 }
+  cherry:      { x: 90, y: 477, w: 95, h: 93 },
+  sugarpowder: { x: 240, y: 477, w: 95, h: 93 },
+  sprinkle:    { x: 390, y: 477, w: 95, h: 93 }
 };
 
 // 매직 키 (우하단 작은 열쇠)
-const MAGIC_KEY = { x: 1230, y: 690, w: 60, h: 40 };
+const MAGIC_KEY = { x: 1240, y: 505, w: 57, h: 21 };
 
 /** --- 씬 --- */
 export default class Stage extends Phaser.Scene {
@@ -117,6 +117,10 @@ export default class Stage extends Phaser.Scene {
 
   create() {
     // 배경
+    // create() 초반
+    this.input.topOnly = true;            // 겹칠 때 맨 위 인터랙티브만 이벤트 받게
+    this.input.dragDistanceThreshold = 8; // 8px 이상 움직여야 실제 드래그로 인식
+    
     this.hallBg = this.add.image(640,360,"hall_background").setOrigin(0.5).setDisplaySize(1280,720).setDepth(-10);
     this.kitchenBg = this.add.image(640,360,"kitchen_background").setOrigin(0.5).setDisplaySize(1280,720).setDepth(-10).setVisible(false);
 
@@ -153,35 +157,43 @@ export default class Stage extends Phaser.Scene {
     this.ovenTimer = this.add.image(TIMER_POS.x, TIMER_POS.y, "kitchen_oven_timer_1").setVisible(false).setDepth(20);
 
     // ───── 재료 꺼내기: "보이는 아이콘 없음" → 선반/라벨 터치로 즉석 토큰 생성 ─────
-    const spawnDragToken = (key: string) => {
-      const p = this.input.activePointer;
-      const token = this.add.image(p.worldX, p.worldY, key).setDepth(50).setInteractive({ draggable:true, useHandCursor:true });
+    const spawnDragToken = (key: string, pointer: Phaser.Input.Pointer) => {
+      const token = this.add.image(pointer.worldX, pointer.worldY, key)
+        .setDepth(50)
+        .setInteractive({ draggable: true, useHandCursor: true })
+        .setData("isToken", true);
+
       this.input.setDraggable(token, true);
-      token.on("drag", (_:any,x:number,y:number)=>token.setPosition(x,y));
-      token.on("dragend", ()=> token.destroy()); // 적용 실패하면 소멸
+      token.on("drag", (_p:any, x:number, y:number) => token.setPosition(x, y));
+      token.on("dragend", () => token.destroy()); // 도마 적용 실패 시 소멸
       return token;
     };
-
     // 도우 선반: 탭→모드 토글, 드래그→현재 모드 토큰
     const doughShelf = this.add.zone(DOUGH_SHELF.x, DOUGH_SHELF.y, DOUGH_SHELF.w, DOUGH_SHELF.h)
-      .setOrigin(0.5).setInteractive({ draggable:true, useHandCursor:true }).setDepth(35);
-    let draggedFromShelf = false;
-    doughShelf.on("dragstart", ()=>{ // 드래그 시작 = 꺼내기
-      draggedFromShelf = true;
+      .setOrigin(0.5)
+      .setInteractive({ draggable: true, useHandCursor: true })
+      .setDepth(35);
+
+    let dragged = false;
+
+    doughShelf.on("dragstart", (pointer) => {
+      dragged = true;
       const key = (this.doughMode === "dough") ? "kitchen_ingredient_dough" : "kitchen_ingredient_lattice";
-      spawnDragToken(key);
-    });
-    doughShelf.on("pointerup", ()=>{ // 드래그 없이 손 뗌 = 토글
-      if (!draggedFromShelf) {
-        this.doughMode = (this.doughMode === "dough") ? "lattice" : "dough";
-        // 짧은 피드백 텍스트
-        const label = this.add.text(DOUGH_SHELF.x, DOUGH_SHELF.y-48, this.doughMode === "dough" ? "DOUGH" : "LATTICE",
-          { fontFamily:"sans-serif", fontSize:"18px", color:"#6E2B8B" }).setOrigin(0.5).setDepth(36);
-        this.tweens.add({ targets:label, y:label.y-24, alpha:0, duration:600, onComplete:()=>label.destroy() });
-      }
-      draggedFromShelf = false;
+      spawnDragToken(key, pointer);
     });
 
+    doughShelf.on("pointerup", () => {
+      if (!dragged) {
+        this.doughMode = (this.doughMode === "dough") ? "lattice" : "dough";
+    // 피드백 텍스트(짧게 떠다 사라짐)
+        const label = this.add.text(DOUGH_SHELF.x, DOUGH_SHELF.y - 48,
+          this.doughMode === "dough" ? "DOUGH" : "LATTICE",
+          { fontFamily: "sans-serif", fontSize: "18px", color: "#6E2B8B" }
+        ).setOrigin(0.5).setDepth(36);
+        this.tweens.add({ targets: label, y: label.y - 24, alpha: 0, duration: 600, onComplete: () => label.destroy() });
+      }
+      dragged = false;
+    });
     // 과일 바구니들(누르고 끌면 토큰 생성)
     this.makeBasketZone(BASKETS.pumpkin,   ()=>spawnDragToken("kitchen_ingredient_pumpkin"));
     this.makeBasketZone(BASKETS.raspberry, ()=>spawnDragToken("kitchen_ingredient_raspberry"));
