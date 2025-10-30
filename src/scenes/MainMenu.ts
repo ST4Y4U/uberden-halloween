@@ -23,7 +23,7 @@ export default class MainMenu extends Phaser.Scene {
     this.tweens.add({ targets: title, alpha: { from: 1, to: 0.4 }, duration: 1000, yoyo: true, repeat: -1 });
 
     this.input.once("pointerdown", () => {
-      this.scene.start("Stage"); // 다음 턴에 Stage 추가 예정
+      this.scene.start("Hall"); // 다음 턴에 Stage 추가 예정
     });
   }
 }
