@@ -123,7 +123,7 @@ export default class Stage extends Phaser.Scene {
 
     // 오븐 타이머/락 이미지
     this.ovenTimer    = this.add.image(TIMER_POS.x, TIMER_POS.y, "kitchen_oven_timer_1").setVisible(false).setDepth(20);
-    this.magicLockImg = this.add.image(BASKETS.magic.x, BASKETS.magic.y, "kitchen_magic_lock").setDepth(34).setVisible(true);
+    this.magicLockImg = this.add.image(BASKETS.magic.x, BASKETS.magic.y, "kitchen_magic_lock").setDepth(18).setVisible(true);
 
     // ===== 토큰 생성 유틸(드롭 즉시 소멸) =====
     const attachSpawnDrag = (
