@@ -9,7 +9,7 @@ const POS = {
   client: { x: 480, y: 290 },
   textboxClient: { x: 960, y: 305, textX: 775, textY: 205 },
   textboxPlayer: { x: 325, y: 550, textX: 125, textY: 483 },
-  arrowKitchen: { x: 1210, y: 625 }
+  arrowKitchen: { x: 1210, y: 625 },
 
   // 파이를 올려둘 카운터 위치(홀)
   hallPie:    { x: 720, y: 620 },
