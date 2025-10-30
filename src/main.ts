@@ -1,9 +1,9 @@
 import Phaser from "phaser";
 import Boot from "./scenes/Boot";
 import MainMenu from "./scenes/MainMenu";
+import Hall from "./scenes/Hall";
 import Stage from "./scenes/Stage";
 import Result from "./scenes/Result";
-import Hall from "./scenes/Hall";
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -15,5 +15,5 @@ new Phaser.Game({
     width: 1280,
     height: 720
   },
-  scene: [Boot, MainMenu, Hall, Stage, Result]
+  scene: [Boot, MainMenu, Hall, Stage, Result],
 });
