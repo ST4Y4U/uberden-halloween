@@ -5,7 +5,7 @@ export default class MainMenu extends Phaser.Scene {
 
   preload(){
     // 네가 준비한 메인 배경
-    this.load.image("mainmenu_background", "assets/images/mainmenu_background.webp");
+    this.load.image("menu_bg", "assets/images/mainmenu_background.webp");
   }
 
   create(){
