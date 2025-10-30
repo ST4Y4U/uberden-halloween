@@ -1,60 +1,30 @@
 // src/data/loadStage.ts
-export interface Line {
-  who: "client" | "player";
-  text: string;
-  sprite?: string; // 선택: 대사 중 스프라이트 전환용
-}
-
-export interface OrderSpec {
-  filling?: string;              // e.g. "pie_jam_apple"
-  needsLattice?: boolean;
-  toppings?: string[];           // e.g. ["pie_ingredient_sugarpowder"]
-  ignoreLattice?: boolean;
-  ignoreToppings?: boolean;
-  exactMatch?: boolean;
-}
-
-export interface CustomerData {
-  id: string;                    // "c1" ~ "c7"
-  sprites: Record<string, string>; // {standard, happy, angry, ...}
-  order?: OrderSpec;
-  successLine?: Line | Line[];   // Hall에서 “대사 모드”일 때 사용
-  failLine?: Line | Line[];      // (지금은 SILENT이므로 출력 안 함)
-}
-
+export interface Line { who:"client"|"player"; text:string; sprite?:string }
+export interface OrderSpec { filling?:string; needsLattice?:boolean; toppings?:string[]; ignoreLattice?:boolean; ignoreToppings?:boolean; exactMatch?:boolean }
+export interface CustomerData { id:string; sprites:Record<string,string>; order?:OrderSpec; successLine?:Line|Line[]; failLine?:Line|Line[] }
 export interface StageData {
-  id: number;                    // 1 ~ 7
-  name: string;
-  bakeTimeSec?: number;
-
-  // 선택: 프리 대화, 에필로그(성공/실패)
-  preface?: Line[];
-  epilogueSuccess?: Line[];
-  epilogueFail?: Line[];
-
-  layout?: {
-    hall?: {
-      standX?: number;
-      standY?: number;
-      // deliverZone은 자동 계산하므로 필요 없음
-    };
-    kitchen?: any; // 좌표를 JSON으로 쓸 경우용(선택)
-  };
-
+  id:number; name:string; bakeTimeSec?:number;
+  preface?:Line[]; epilogueSuccess?:Line[]; epilogueFail?:Line[];
+  layout?:{ hall?:{ standX?:number; standY?:number }; kitchen?:any };
   customers: CustomerData[];
 }
 
-async function tryFetch(url: string) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`fetch fail ${res.status} ${url}`);
-  return res.json();
+async function fetchJson(url:string){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} @ ${url}`);
+  return r.json();
 }
 
-export async function loadStageData(stageId: number): Promise<StageData> {
+// ✅ Vite의 BASE_URL을 이용하면 로컬/깃허브페이지 모두 안전
+const BASE = (import.meta as any).env?.BASE_URL ?? "/";
+
+export async function loadStageData(stageId:number): Promise<StageData> {
   const name = `stage0${stageId}.json`;
-  // 먼저 /assets/data 시도
-  try { return await tryFetch(`assets/data/${name}`); } catch {}
-  // 다음 /data 시도
-  try { return await tryFetch(`data/${name}`); } catch {}
-  throw new Error(`Stage JSON not found: assets/data/${name} or data/${name}`);
+  // 1순위: public/assets/data
+  const p1 = `${BASE}assets/data/${name}`;
+  // 2순위: public/data (혹시 이전 구조가 남아있을 때 대비)
+  const p2 = `${BASE}data/${name}`;
+
+  try { return await fetchJson(p1); }
+  catch { return await fetchJson(p2); }
 }
