@@ -1,4 +1,3 @@
-// src/scenes/MainMenu.ts
 import Phaser from "phaser";
 
 export default class MainMenu extends Phaser.Scene {
@@ -12,10 +11,8 @@ export default class MainMenu extends Phaser.Scene {
     this.add.image(640, 360, "mainmenu_background").setDepth(-10);
 
     // 센터 근처 클릭 시 게임 시작
-    const clickZone = this.add.zone(640, 360, 400, 300)
+    this.add.zone(640, 360, 480, 360)
       .setInteractive({ useHandCursor: true })
-      .on("pointerup", () => {
-        this.scene.start("Hall"); // 바로 홀로 진입
-      });
+      .on("pointerup", () => this.scene.start("Hall"));
   }
 }
