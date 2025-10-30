@@ -3,11 +3,20 @@ import Phaser from "phaser";
 export default class Result extends Phaser.Scene {
   constructor() { super("Result"); }
 
-  create(data: { ending: "good"|"normal"|"bad"; good: number; bad: number; }) {
-    const msg = data.ending === "good" ? "GOOD END" : data.ending === "bad" ? "BAD END" : "NORMAL END";
-    this.add.text(640, 300, msg, { fontFamily: "sans-serif", fontSize: "48px", color: "#ffffff" }).setOrigin(0.5);
-    this.add.text(640, 360, `GOOD: ${data.good} / BAD: ${data.bad}`, { fontFamily: "sans-serif", fontSize: "24px", color: "#aaaaaa" }).setOrigin(0.5);
-    this.add.text(640, 420, "Click to Title", { fontFamily: "sans-serif", fontSize: "20px", color: "#aaaaaa" }).setOrigin(0.5);
-    this.input.once("pointerdown", () => this.scene.start("MainMenu"));
+  preload() {
+    this.load.image("ending_good",   "assets/images/ending_good.webp");
+    this.load.image("ending_normal", "assets/images/ending_normal.webp");
+    this.load.image("ending_bad",    "assets/images/ending_bad.webp");
+  }
+
+  create() {
+    // registry에 "endingType" = "good" | "normal" | "bad"
+    const ending: "good" | "normal" | "bad" =
+      this.registry.get("endingType") ?? "normal";
+
+    this.add.image(640, 360, `ending_${ending}`);
+
+    // 클릭하면 메인 메뉴로
+    this.input.once("pointerup", () => this.scene.start("MainMenu"));
   }
 }
