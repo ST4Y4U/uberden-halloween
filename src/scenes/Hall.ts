@@ -42,7 +42,7 @@ export default class Hall extends Phaser.Scene {
     this.load.image("pie_ingredient_sugarpowder", "assets/images/pie_ingredient_sugarpowder.png");
   }
 
-  create() {
+  async create() {
     this.add.image(640, 360, "hall_background").setDepth(-1000);
     this.add.image(640, 360, "hall_counter").setDepth(10);
 
