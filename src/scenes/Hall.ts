@@ -3,7 +3,7 @@ import Phaser from "phaser";
 import { loadStageData, StageData, CustomerData } from "../data/loadStage.ts";
 import { getGameState, setGameState, setPieState, nextStage } from "../data/state.ts";
 
-const AUTO_JUDGE_ON_ENTER = true;  // 홀 입장 즉시 판정
+const AUTO_JUDGE_ON_ENTER = false;  // 홀 입장 즉시 판정
 const SILENT_JUDGE = true;         // 대사 없이 판정만
 
 export default class Hall extends Phaser.Scene {
@@ -42,7 +42,7 @@ export default class Hall extends Phaser.Scene {
     this.load.image("pie_ingredient_sugarpowder", "assets/images/pie_ingredient_sugarpowder.png");
   }
 
-  async create() {
+  create() {
     this.add.image(640, 360, "hall_background").setDepth(-1000);
     this.add.image(640, 360, "hall_counter").setDepth(10);
 
@@ -87,11 +87,7 @@ export default class Hall extends Phaser.Scene {
     this.add.image(60, 640, "hall_arrow").setDepth(30).setInteractive({useHandCursor:true})
       .on("pointerup", () => this.scene.start("Stage"));
 
-    // 입장 즉시 “판정만” 수행
-    if (AUTO_JUDGE_ON_ENTER) {
-      this.runJudgeFlow();
-      return;
-    }
+
   }
 
   private runJudgeFlow() {
