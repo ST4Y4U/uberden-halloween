@@ -1,7 +1,8 @@
 // src/scenes/Hall.ts
 import Phaser from "phaser";
-import { loadStageData, StageData, CustomerData, Line } from "../data/loadStage";
-import { getGameState, setGameState } from "../data/state";
+// import { loadStageData, StageData, CustomerData, Line } from "../data/loadStage";
+// import { getGameState, setGameState } from "../data/state";
+console.log(" Hall.ts loaded! ");
 
 export default class Hall extends Phaser.Scene {
   private stageData!: StageData;
