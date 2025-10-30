@@ -208,18 +208,32 @@ export default class Hall extends Phaser.Scene {
   }
 
   private showLine(isClient: boolean, text: string) {
-    const box = isClient ? this.textbox : this.myTextbox;
+  // 색상 지정
     const color = isClient ? this.COLOR_CLIENT : this.COLOR_PLAYER;
+
+  // 말풍선 토글
     this.textbox.setVisible(isClient);
     this.myTextbox.setVisible(!isClient);
+
+  // 기존 텍스트 제거
     this.children.getByName("dialogText")?.destroy();
-    this.add.text(box.x, box.y - 10, text, {
+
+  // 각 대화 주체별 좌표 지정
+    const pos = isClient
+      ? { x: 775, y: 205 }   // 손님 말풍선 내부 중앙
+      : { x: 125, y: 483 };  // 플레이어 말풍선 내부 중앙
+
+  // 텍스트 출력
+    this.add.text(pos.x, pos.y, text, {
       fontFamily: "sans-serif",
       fontSize: "32px",
       color,
-      wordWrap: { width: 880, useAdvancedWrap: true },
+      wordWrap: { width: 460, useAdvancedWrap: true }, // ← wordWrap.width는 나중에 조정 가능
       align: "center"
-    }).setOrigin(0.5).setDepth(25).setName("dialogText");
+    })
+    .setOrigin(0.5)
+    .setDepth(25)
+    .setName("dialogText");
   }
 
   private hideBoxes() {
