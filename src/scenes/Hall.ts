@@ -57,12 +57,10 @@ export default class Hall extends Phaser.Scene {
       .setDepth(21).setVisible(false).setInteractive({ useHandCursor:true });
 
     this.clText = this.add.text(POS.textboxClient.textX, POS.textboxClient.textY, "", {
-      fontFamily:"sans-serif", fontSize:"28px", color:"#140605", wordWrap:{ width: POS.textboxClient.wrap }
-    }).setDepth(31).setVisible(false);
+      fontFamily:"sans-serif", fontSize:"28px", color:"#140605", wordWrap:{ width: 400 }, lineSpacing: 6 }).setDepth(31).setVisible(false);
 
     this.myText = this.add.text(POS.textboxPlayer.textX, POS.textboxPlayer.textY, "", {
-      fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: POS.textboxPlayer.wrap }
-    }).setDepth(32).setVisible(false);
+      fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: 360 }, lineSpacing: 8 }).setDepth(32).setVisible(false);
 
     this.clBox.on("pointerup", () => this.advance());
     this.myBox.on("pointerup", () => this.advance());
@@ -177,7 +175,7 @@ export default class Hall extends Phaser.Scene {
         // 판정
         const ok = this.evaluatePie();
         // 기록/전환
-        this.afterDeliver(오케이);
+        this.afterDeliver(ok);
       } else {
         // 스냅백
         this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
@@ -204,7 +202,7 @@ export default class Hall extends Phaser.Scene {
   }
 
   private afterDeliver(ok: boolean){
-    recordEvaluation(오케이);
+    recordEvaluation(ok);
     clearCarriedPie(); // 파이는 소모됨
 
     // 스테이지 7이면 엔딩으로
