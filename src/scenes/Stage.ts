@@ -1,6 +1,6 @@
 // src/scenes/Stage.ts
 import Phaser from "phaser";
-import { getGameState, setGameState } from "../data/state";
+import { getGameState, setGameState } from "@/data/state";
 
 const BOARD_POS   = { x: 720,  y: 625 };
 const BOARD_HIT_R = 160;
@@ -82,6 +82,7 @@ export default class Stage extends Phaser.Scene {
     this.add.image(640, 360, "kitchen_background").setOrigin(0.5).setDepth(-1000);
 
     this.boardImg = this.add.image(BOARD_POS.x, BOARD_POS.y, "pie_cuttingboard").setDepth(10);
+
     this.pieGroup = this.add.container(BOARD_POS.x, BOARD_POS.y).setDepth(22).setVisible(false);
     this.pieBottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_raw").setVisible(false);
     this.pieJam = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_jam_apple").setVisible(false);
@@ -90,18 +91,19 @@ export default class Stage extends Phaser.Scene {
     this.pieGroup.setSize(320, 220);
     this.pieGroup.setInteractive(new Phaser.Geom.Rectangle(-160,-110,320,220), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(this.pieGroup, true);
-
     this.input.on("drag", (_p,g,dx,dy)=>{ if(g===this.pieGroup)this.pieGroup.setPosition(dx,dy); });
 
     this.ovenTimer = this.add.image(TIMER_POS.x, TIMER_POS.y, "kitchen_oven_timer_1").setDepth(20).setVisible(false);
     this.magicLockImg = this.add.image(BASKETS.magic.x, BASKETS.magic.y, "kitchen_magic_lock").setDepth(18).setVisible(true);
 
+    // 홀로 이동
     this.add.image(HALL_ARROW_POS.x, HALL_ARROW_POS.y, "kitchen_arrow")
       .setOrigin(0.5)
       .setDepth(200)
       .setInteractive({ useHandCursor: true })
       .on("pointerup", () => this.scene.start("Hall"));
-    
+
+    // 공용 헬퍼
     const attachSpawnDrag=(zone:any,getKey:()=>string,onDrop:(t:Phaser.GameObjects.Image)=>void)=>{
       let token:Phaser.GameObjects.Image|null=null;
       const move=(p:any)=>{if(token)token.setPosition(p.worldX,p.worldY);};
@@ -117,7 +119,7 @@ export default class Stage extends Phaser.Scene {
       });
     };
 
-    // === 도우 선반 ===
+    // 도우 선반
     const shelf=this.add.zone(DOUGH_SHELF.x,DOUGH_SHELF.y,DOUGH_SHELF.w,DOUGH_SHELF.h).setOrigin(0.5).setInteractive({useHandCursor:true}).setDepth(100);
     this.input.setDraggable(shelf,true);
     let downTime=0,downX=0,downY=0,startedDrag=false;
@@ -132,69 +134,44 @@ export default class Stage extends Phaser.Scene {
       }
     });
 
-    attachSpawnDrag(
-      shelf,
-      () => this.doughMode === "dough" ? "kitchen_ingredient_dough" : "kitchen_ingredient_lattice",
-      (token) => {
-        const dx = token.x - BOARD_POS.x, dy = token.y - BOARD_POS.y;
-        const onBoard = (dx * dx + dy * dy) <= (BOARD_HIT_R * BOARD_HIT_R);
-        if (!onBoard) return;
-        const key = token.texture.key;
-        if (this.pie.cooked) return;
-
-        if (key === "kitchen_ingredient_dough") {
-          if (this.pie.hasDough) return;
-          this.pie.hasDough = true;
-          this.pie.cooked = false;
-          this.pie.filling = null;
-          this.pie.lattice = false;
-          this.clearToppings();
-          this.pieGroup.setVisible(true);
-          this.pieBottom.setTexture("pie_bottom_raw").setVisible(true);
-          this.pieJam.setVisible(false);
-          this.pieTop.setVisible(false);
-          this.syncToGlobal(); // ← 도우 올렸을 때 저장
-        } else if (key === "kitchen_ingredient_lattice") {
-          if (!this.pie.hasDough) return;
-          this.pie.lattice = true;
-          this.pieTop.setTexture("pie_top_raw").setVisible(true);
-          this.syncToGlobal(); // ← lattice 올렸을 때 저장
-        }
+    attachSpawnDrag(shelf,()=>this.doughMode==="dough"?"kitchen_ingredient_dough":"kitchen_ingredient_lattice",(token)=>{
+      const dx=token.x-BOARD_POS.x,dy=token.y-BOARD_POS.y,onBoard=(dx*dx+dy*dy)<=(BOARD_HIT_R*BOARD_HIT_R);
+      if(!onBoard)return;
+      const key=token.texture.key;
+      if(this.pie.cooked)return;
+      if(key==="kitchen_ingredient_dough"){
+        if(this.pie.hasDough)return;
+        this.pie.hasDough=true;this.pie.cooked=false;this.pie.filling=null;this.pie.lattice=false;this.clearToppings();
+        this.pieGroup.setVisible(true);
+        this.pieBottom.setTexture("pie_bottom_raw").setVisible(true);
+        this.pieJam.setVisible(false);this.pieTop.setVisible(false);
+        this.syncToGlobal();
+      }else if(key==="kitchen_ingredient_lattice"){
+        if(!this.pie.hasDough)return;
+        this.pie.lattice=true;this.pieTop.setTexture("pie_top_raw").setVisible(true);
+        this.syncToGlobal();
       }
-    );
+    });
 
-    const makeBasket = (r: any, tex: string) => {
-      const z = this.add.zone(r.x, r.y, r.w, r.h)
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true })
-        .setDepth(100);
-      this.input.setDraggable(z, true);
-
-      attachSpawnDrag(z, () => tex, (token) => {
-        const dx = token.x - BOARD_POS.x, dy = token.y - BOARD_POS.y;
-        const onBoard = (dx * dx + dy * dy) <= (BOARD_HIT_R * BOARD_HIT_R);
-        if (!onBoard) return;
-        if (tex === "kitchen_ingredient_magic" && this.magicLocked) return;
-
-        if (tex.startsWith("kitchen_ingredient_") && this.pie.hasDough && !this.pie.cooked) {
-          const jam = this.mapKitchenToJam(tex);
-          if (jam) {
-            this.pie.filling = jam;
-            this.pieJam.setTexture(jam).setVisible(true);
-            this.syncToGlobal(); // ← 잼 넣었을 때 저장
-          }
-        } else if (tex.startsWith("pie_ingredient_") && this.pie.cooked) {
-          if (!this.pie.toppings.has(tex)) {
+    // 과일 바구니 & 토핑 존
+    const makeBasket=(r:any,tex:string)=>{
+      const z=this.add.zone(r.x,r.y,r.w,r.h).setOrigin(0.5).setInteractive({useHandCursor:true}).setDepth(100);
+      this.input.setDraggable(z,true);
+      attachSpawnDrag(z,()=>tex,(token)=>{
+        const dx=token.x-BOARD_POS.x,dy=token.y-BOARD_POS.y,onBoard=(dx*dx+dy*dy)<=(BOARD_HIT_R*BOARD_HIT_R);
+        if(!onBoard)return;
+        if(tex==="kitchen_ingredient_magic"&&this.magicLocked)return;
+        if(tex.startsWith("kitchen_ingredient_")&&this.pie.hasDough&&!this.pie.cooked){
+          const jam=this.mapKitchenToJam(tex); if(jam){this.pie.filling=jam;this.pieJam.setTexture(jam).setVisible(true);this.syncToGlobal();}
+        }else if(tex.startsWith("pie_ingredient_")&&this.pie.cooked){
+          if(!this.pie.toppings.has(tex)){
             this.pie.toppings.add(tex);
-            const t = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, tex).setDepth(23);
-            this.pieGroup.add(t);
-            this.toppingSprites.push(t);
-            this.syncToGlobal(); // ← 토핑 올렸을 때 저장
+            const t=this.add.image(PIE_OFFSET.x,PIE_OFFSET.y,tex).setDepth(23);this.pieGroup.add(t);this.toppingSprites.push(t);
+            this.syncToGlobal();
           }
         }
       });
     };
-
     Object.entries(BASKETS).filter(([k])=>k!=="magic").forEach(([k,v])=>makeBasket(v,`kitchen_ingredient_${k}`));
     Object.entries(TOPPING_ZONES).forEach(([k,v])=>makeBasket(v,`pie_ingredient_${k}`));
 
@@ -205,10 +182,9 @@ export default class Stage extends Phaser.Scene {
       attachSpawnDrag(magicZone,()=> "kitchen_ingredient_magic",(t)=>{
         const dx=t.x-BOARD_POS.x,dy=t.y-BOARD_POS.y,onBoard=(dx*dx+dy*dy)<=(BOARD_HIT_R*BOARD_HIT_R);
         if(!onBoard||!this.pie.hasDough)return;
-        const jam=this.mapKitchenToJam("kitchen_ingredient_magic");if(jam){this.pie.filling=jam;this.pieJam.setTexture(jam).setVisible(true);}
+        const jam=this.mapKitchenToJam("kitchen_ingredient_magic");if(jam){this.pie.filling=jam;this.pieJam.setTexture(jam).setVisible(true);this.syncToGlobal();}
       });
     };
-
     this.add.image(MAGIC_KEY.x,MAGIC_KEY.y,"kitchen_magic_key").setDepth(100);
     const keyZone=this.add.zone(MAGIC_KEY.x,MAGIC_KEY.y,MAGIC_KEY.w,MAGIC_KEY.h).setOrigin(0.5).setInteractive({useHandCursor:IS_BOSS_STAGE}).setDepth(101);
     if(IS_BOSS_STAGE){this.input.setDraggable(keyZone,true);
@@ -222,6 +198,7 @@ export default class Stage extends Phaser.Scene {
       });
     }
 
+    // 오븐/버너 드랍 영역
     const oven=this.add.zone(OVEN_ZONE.x,OVEN_ZONE.y,OVEN_ZONE.w,OVEN_ZONE.h).setOrigin(0.5).setRectangleDropZone(OVEN_ZONE.w,OVEN_ZONE.h);
     const burn=this.add.zone(BURN_ZONE.x,BURN_ZONE.y,BURN_ZONE.w,BURN_ZONE.h).setOrigin(0.5).setRectangleDropZone(BURN_ZONE.w,BURN_ZONE.h);
     this.input.on("drop",(_p:any,g:any,zone:any)=>{
@@ -247,44 +224,46 @@ export default class Stage extends Phaser.Scene {
     };
     setGameState(S);
   }
-  
-  private activateOvenTimer(){
-    this.isBaking = false;
-    this.syncToGlobal();
-    this.pieGroup.setVisible(false);
-    this.input.setDraggable(this.pieGroup, false);
 
-    const frames = ["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
+  private activateOvenTimer(){
+    this.isBaking=true;
+
+    // 오븐 들어간 동안 안 보이게 + 조작 금지
+    this.pieGroup.setVisible(false);
+    this.input.setDraggable(this.pieGroup,false);
+
+    const frames=["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
     this.ovenTimer.setVisible(true).setTexture(frames[0]);
 
-    let i = 0;
-    const tick = () => {
+    let i=0;
+    const tick=()=>{
       i++;
-      if (i < frames.length) {
+      if(i<frames.length){
         this.ovenTimer.setTexture(frames[i]);
-        this.time.delayedCall(1000, tick);
-      } else {
-      // === 여기서 '완료' 처리 ===
+        this.time.delayedCall(1000,tick);
+      }else{
+        // 굽기 완료
         this.ovenTimer.setVisible(false);
-        this.pie.cooked = true;
-
+        this.pie.cooked=true;
         this.pieBottom.setTexture("pie_bottom_cooked").setVisible(true);
-        if (this.pie.lattice) this.pieTop.setTexture("pie_top_cooked").setVisible(true);
+        if(this.pie.lattice) this.pieTop.setTexture("pie_top_cooked").setVisible(true);
 
-        this.pieGroup.setPosition(BOARD_POS.x, BOARD_POS.y).setVisible(true);
-        this.input.setDraggable(this.pieGroup, true);
-        this.isBaking = false;
+        // 보이게 + 드래그 재활성
+        this.pieGroup.setPosition(BOARD_POS.x,BOARD_POS.y).setVisible(true);
+        this.input.setDraggable(this.pieGroup,true);
 
-      // ⬇⬇⬇ 완료 후에 전역 저장
+        this.isBaking=false;
+        // 완료 순간 저장
         this.syncToGlobal();
       }
     };
-
-  this.time.delayedCall(1000, tick);
-}
+    this.time.delayedCall(1000,tick);
+  }
 
   private resetPie(){
     this.pie.hasDough=false;this.pie.cooked=false;this.pie.filling=null;this.pie.lattice=false;
-    this.clearToppings();this.pieBottom.setVisible(false);this.pieJam.setVisible(false);this.pieTop.setVisible(false);
+    this.clearToppings();
+    this.pieBottom.setVisible(false);this.pieJam.setVisible(false);this.pieTop.setVisible(false);
+    this.syncToGlobal();
   }
 }
