@@ -1,4 +1,4 @@
-// src/scenes/Hall.ts
+cㅣ// src/scenes/Hall.ts
 import Phaser from "phaser";
 import { loadStageData, StageData, Line, OrderRule } from "@/data/loadStage";
 import { getGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "@/data/state";
@@ -110,7 +110,7 @@ export default class Hall extends Phaser.Scene {
       fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: 420 }, lineSpacing: 8
     }).setDepth(DEPTH.UI+3).setVisible(false);
 
-    this.clBox.on("pointerup", () => this.advance());
+    .clBox.on("pointerup", () => this.advance());
     this.myBox.on("pointerup", () => this.advance());
 
     this.toKitchenArrow = this.add.image(POS.arrowKitchen.x, POS.arrowKitchen.y, "hall_arrow")
@@ -659,7 +659,7 @@ export default class Hall extends Phaser.Scene {
       const r = g.getBounds();
       if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
         const ok = this.evaluatePie();   // 판정
-        this.afterDeliver(오케이);           // 기록/진행
+        this.afterDeliver(ok);           // 기록/진행
       } else {
         this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
       }
@@ -692,7 +692,7 @@ export default class Hall extends Phaser.Scene {
   }
 
   private afterDeliver(ok: boolean){
-    recordEvaluation(오케이);
+    recordEvaluation(ok);
     clearCarriedPie(); // 파이 소모
 
     if (this.stageData.id >= 7) {
