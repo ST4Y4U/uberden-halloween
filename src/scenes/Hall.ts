@@ -71,9 +71,15 @@ export default class Hall extends Phaser.Scene {
   }
 
   async create() {
-    clearCarriedPie();
-    // 새로고침 시 초기화 방지: 필요 시 Boot에서 clearCarriedPie() 실행
+        // 새로고침 시 초기화 방지: 필요 시 Boot에서 clearCarriedPie() 실행
     const G = getGameState();
+
+// 조건부 초기화: 파이가 있는데 납품/판정이 끝나지 않았다면 삭제
+    if (G.pie && !G.pie.delivered) {
+  // 원한다면 '리로드 시 자동 폐기' 동작을 이 한 줄로 유지
+  // 리로드해도 남지 않게 하려면 이 조건부를 유지하고, 무조건 남게 하려면 이 블록을 지워
+  clearCarriedPie();
+}
     const stageId = G.stageId || 1;
     this.stageData = await loadStageData(stageId);
 
@@ -261,10 +267,22 @@ export default class Hall extends Phaser.Scene {
   }
 
   private afterDeliver(ok: boolean){
+    const G = getGameState();
+    if (G.pie) G.pie.delivered = true; // ← 납품 완료 마킹
+
     recordEvaluation(ok);
-    clearCarriedPie();
+    clearCarriedPie();                // 파이 소모
     this.hallPieGroup?.destroy();
 
+    if (ok) advanceStage();           // 성공시에만 다음 단계
+
+    if (this.stageData.id >= 7) {
+      const result = computeEnding();
+      this.scene.start("Result", { result });
+    } else {
+      this.scene.start("Hall");
+    }
+  }
     // 성공일 때만 다음 단계로
     if (ok) advanceStage();
 
