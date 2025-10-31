@@ -447,7 +447,7 @@ export default class Hall extends Phaser.Scene {
 
     g.on("drag", (_pointer: any, dragX: number, dragY: number) => {
       g.setPosition(dragX, dragY);
-    }
+    });
 
     g.on("dragend", () => {
       const r = g.getBounds();
