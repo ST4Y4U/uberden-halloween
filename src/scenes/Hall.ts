@@ -17,6 +17,7 @@ const POS = {
 const PIE_OFFSET = { x: 0, y: -90 };
 // 히트박스 크게
 const PIE_HIT    = { w: 520, h: 360 };
+const PIE_HIT_SHIFT_X = 60;
 
 const DEPTH = {
   BG: -1000,
@@ -116,8 +117,17 @@ export default class Hall extends Phaser.Scene {
       .on("pointerup", () => this.scene.start("Stage"));
 
     // 들고 온 파이가 있으면 복원
+// 들고 온 파이가 있으면 복원
     if (G.pie?.cooked) {
       this.spawnHallPie(G.pie.filling ?? null, !!G.pie.lattice, G.pie.toppings ?? []);
+  // === 주문 대사 차단 ===
+      this.hideBubbles();
+      this.dialogQueue = []; // 프리/주문 대사 시작하지 않음
+    } else {
+  // 프리 대화 → 주문 대사
+      const pre = this.stageData.customers?.[0]?.preDialogue ?? [];
+      this.dialogQueue = [...pre, { who: "client", text: "" } as any];
+      this.showNextFromQueue();
     }
 
     // 프리 대화 → 주문 대화
@@ -227,42 +237,54 @@ export default class Hall extends Phaser.Scene {
 
     // 강력한 dragend: 로그+피드백
     g.on("dragend", () => {
-      try{
+      try {
         if (!this.deliverRect) this.recomputeDeliverRect();
-        const r = g.getBounds();
-        const hit = Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect);
 
+    // 컨테이너 실제 바운즈
+        const r = g.getBounds();
+
+    // 히트박스를 오른쪽으로 평행이동해서 판정
+        const shifted = new Phaser.Geom.Rectangle(r.x + PIE_HIT_SHIFT_X, r.y, r.width, r.height);
+        const hit = Phaser.Geom.Intersects.RectangleToRectangle(shifted, this.deliverRect);
+    
         if (!hit) {
+      // 미스: 흔들고 원위치
           this.tweens.add({ targets: g, x: g.x + 8, duration: 60, yoyo: true, repeat: 2 });
           this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut", delay: 120 });
           return;
-        }
+    }
 
         const ok = this.evaluatePie();
 
         if (!ok) {
+      // 실패: 붉은 플래시 + 실패 대사 + 원위치
           const flash = this.add.rectangle(g.x, g.y, PIE_HIT.w, PIE_HIT.h, 0xff0000, 0.15).setDepth(DEPTH.PIE + 1);
           this.tweens.add({ targets: flash, alpha: 0, duration: 250, onComplete: () => flash.destroy() });
-          this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut" });
+
+      // 실패 대사 & 표정
+          this.client.setTexture(this.getClientSprite("angry"));
+          this.clBox.setVisible(true); this.clText.setVisible(true).setText("…이건 주문이 아니야.");
+          this.time.delayedCall(650, () => {
+            this.clBox.setVisible(false); this.clText.setVisible(false);
+            this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut" });
+          });
           return;
         }
 
-        // 성공: 페이드아웃 후 처리
+    // 성공: 짧은 성공 대사 후 납품 처리
+        this.client.setTexture(this.getClientSprite("happy"));
+        this.clBox.setVisible(true); this.clText.setVisible(true).setText("고마워. 딱 내가 원하던 파이야.");
         this.tweens.add({
-          targets: g,
-          scale: 1.05,
-          alpha: 0.0,
-          duration: 220,
-          ease: "Sine.easeIn",
-          onComplete: () => this.afterDeliver(true)
+          targets: g, scale: 1.05, alpha: 0.0, duration: 220, ease: "Sine.easeIn"
         });
-      }catch(e){
-        // 예외가 나도 게임이 멈추지 않게 원위치
+        this.time.delayedCall(320, () => {
+          this.clBox.setVisible(false); this.clText.setVisible(false);
+          this.afterDeliver(true);
+        });
+      } catch (_e) {
         this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut" });
-        // console.error(e);
       }
     });
-
     this.hallPieGroup = g;
   }
 
