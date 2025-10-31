@@ -15,7 +15,7 @@ const POS = {
 };
 
 const PIE_OFFSET = { x: 0, y: -90 };
-const PIE_HIT    = { w: 360, h: 260 }; // 히트박스 확대
+const PIE_HIT    = { w: 480, h: 320 }; // 히트박스 확대
 
 const DEPTH = {
   BG: -1000,
@@ -71,6 +71,7 @@ export default class Hall extends Phaser.Scene {
   }
 
   async create() {
+    clearCarriedPie();
     // 새로고침 시 초기화 방지: 필요 시 Boot에서 clearCarriedPie() 실행
     const G = getGameState();
     const stageId = G.stageId || 1;
@@ -246,6 +247,10 @@ export default class Hall extends Phaser.Scene {
     const fillingOk = isFinal
       ? (pie.filling === "pie_jam_magic")
       : (o.filling ? pie.filling === o.filling : true);
+    const normalize = (s?: string) => s?.replace("pie_jam_", "");
+    const fillingOk = isFinal
+      ? (normalize(pie.filling) === "magic")
+      : (o.filling ? normalize(pie.filling) === normalize(o.filling) : true);
 
     const latticeOk = o.ignoreLattice
       || (o.needsLattice === undefined ? true : pie.lattice === !!o.needsLattice)
