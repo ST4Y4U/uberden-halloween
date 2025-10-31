@@ -283,3 +283,4 @@ export default class Hall extends Phaser.Scene {
       this.scene.start("Hall");
     }
   }
+}
