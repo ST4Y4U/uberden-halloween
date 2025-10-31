@@ -196,7 +196,7 @@ export default class Hall extends Phaser.Scene {
     for (const t of toppings) {
       g.add(this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, t).setDepth(DEPTH.PIE+1));
     }
-
+  }
     // 드래그(오브젝트 단위 핸들러)
     g.setSize(PIE_HIT.w, PIE_HIT.h);
     g.setInteractive(new Phaser.Geom.Rectangle(-PIE_HIT.w/2, -PIE_HIT.h/2, PIE_HIT.w, PIE_HIT.h), Phaser.Geom.Rectangle.Contains);
@@ -206,7 +206,7 @@ export default class Hall extends Phaser.Scene {
       g.setPosition(dragX, dragY);
     });
 
-    g.on("dragend", () => {
+    g.on("dragend" () => {
       const r = g.getBounds();
       if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
         const ok = this.evaluatePie();   // 판정
@@ -214,10 +214,8 @@ export default class Hall extends Phaser.Scene {
       } else {
         this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
       }
-    });
-
-    this.hallPieGroup = g;
-  }
+      this.hallPieGroup = g;
+    }
 
   private evaluatePie(): boolean {
     const G = getGameState();
@@ -255,7 +253,8 @@ export default class Hall extends Phaser.Scene {
     advanceStage();
     this.scene.start("Hall");
   }
-}  private clBox!: Phaser.GameObjects.Image;
+}  
+  private clBox!: Phaser.GameObjects.Image;
   private myBox!: Phaser.GameObjects.Image;
   private clText!: Phaser.GameObjects.Text;
   private myText!: Phaser.GameObjects.Text;
