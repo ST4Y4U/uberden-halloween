@@ -204,9 +204,9 @@ export default class Hall extends Phaser.Scene {
 
     g.on("drag", (_pointer: any, dragX: number, dragY: number) => {
       g.setPosition(dragX, dragY);
-    });
+    }
 
-    g.on("dragend" () => {
+    g.on("dragend", () => {
       const r = g.getBounds();
       if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
         const ok = this.evaluatePie();   // 판정
@@ -252,8 +252,7 @@ export default class Hall extends Phaser.Scene {
     }
     advanceStage();
     this.scene.start("Hall");
-  }
-}  
+  }  
   private clBox!: Phaser.GameObjects.Image;
   private myBox!: Phaser.GameObjects.Image;
   private clText!: Phaser.GameObjects.Text;
