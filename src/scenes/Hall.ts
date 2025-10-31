@@ -244,9 +244,6 @@ export default class Hall extends Phaser.Scene {
     const pie = G.pie;
     if (!pie || !pie.cooked) return false;
 
-    const fillingOk = isFinal
-      ? (pie.filling === "pie_jam_magic")
-      : (o.filling ? pie.filling === o.filling : true);
     const normalize = (s?: string) => s?.replace("pie_jam_", "");
     const fillingOk = isFinal
       ? (normalize(pie.filling) === "magic")
