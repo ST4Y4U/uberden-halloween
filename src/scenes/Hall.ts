@@ -250,7 +250,7 @@ export default class Hall extends Phaser.Scene {
     const pie = G.pie;
     if (!pie || !pie.cooked) return false;
 
-    const normalize = (s?: string) => s?.replace("pie_jam_", "");
+    const normalize = (s?: string) => s?.replace(/^pie_jam_/, "");
     const fillingOk = isFinal
       ? (normalize(pie.filling) === "magic")
       : (o.filling ? normalize(pie.filling) === normalize(o.filling) : true);
@@ -268,14 +268,14 @@ export default class Hall extends Phaser.Scene {
 
   private afterDeliver(ok: boolean){
     const G = getGameState();
-    if (G.pie) G.pie.delivered = true; // ← 납품 완료 마킹
+    if (G.pie) G.pie.delivered = true; // 납품 완료 마킹
 
     recordEvaluation(ok);
     clearCarriedPie();                // 파이 소모
     this.hallPieGroup?.destroy();
 
-    if (ok) advanceStage();           // 성공시에만 다음 단계
-
+  if (ok) advanceStage();           // 성공시에만 다음 단계
+  
     if (this.stageData.id >= 7) {
       const result = computeEnding();
       this.scene.start("Result", { result });
@@ -283,14 +283,3 @@ export default class Hall extends Phaser.Scene {
       this.scene.start("Hall");
     }
   }
-    // 성공일 때만 다음 단계로
-    if (ok) advanceStage();
-
-    if (this.stageData.id >= 7) {
-      const result = computeEnding();
-      this.scene.start("Result", { result });
-    } else {
-      this.scene.start("Hall");
-    }
-  }
-}
