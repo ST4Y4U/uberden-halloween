@@ -280,7 +280,7 @@ export default class Hall extends Phaser.Scene {
     advanceStage();
     this.scene.start("Hall");
   }
-}};
+}
 
 export default class Hall extends Phaser.Scene {
   constructor(){ super("Hall"); }
