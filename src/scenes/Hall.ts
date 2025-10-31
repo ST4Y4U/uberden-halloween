@@ -1,4 +1,4 @@
-cㅣ// src/scenes/Hall.ts
+// src/scenes/Hall.ts
 import Phaser from "phaser";
 import { loadStageData, StageData, Line, OrderRule } from "@/data/loadStage";
 import { getGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "@/data/state";
@@ -110,7 +110,7 @@ export default class Hall extends Phaser.Scene {
       fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: 420 }, lineSpacing: 8
     }).setDepth(DEPTH.UI+3).setVisible(false);
 
-    .clBox.on("pointerup", () => this.advance());
+    this.clBox.on("pointerup", () => this.advance());
     this.myBox.on("pointerup", () => this.advance());
 
     this.toKitchenArrow = this.add.image(POS.arrowKitchen.x, POS.arrowKitchen.y, "hall_arrow")
