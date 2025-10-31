@@ -249,7 +249,8 @@ export default class Stage extends Phaser.Scene {
   }
   
   private activateOvenTimer(){
-    this.isBaking = true;
+    this.isBaking = false;
+    this.syncToGlobal();
     this.pieGroup.setVisible(false);
     this.input.setDraggable(this.pieGroup, false);
 
