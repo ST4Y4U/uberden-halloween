@@ -464,7 +464,8 @@ export default class Hall extends Phaser.Scene {
       }
     });
     
-      this.hallPieGroup = g;
+    this.hallPieGroup = g;
+  }
 
   private evaluatePie(): boolean {
     const G = getGameState();
