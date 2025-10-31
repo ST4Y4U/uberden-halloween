@@ -132,35 +132,65 @@ export default class Stage extends Phaser.Scene {
       }
     });
 
-    attachSpawnDrag(shelf,()=>this.doughMode==="dough"?"kitchen_ingredient_dough":"kitchen_ingredient_lattice",(token)=>{
-      const dx=token.x-BOARD_POS.x,dy=token.y-BOARD_POS.y,onBoard=(dx*dx+dy*dy)<=(BOARD_HIT_R*BOARD_HIT_R);
-      if(!onBoard)return;
-      const key=token.texture.key;
-      if(this.pie.cooked)return; // 익은 파이 위 반죽 금지
-      if(key==="kitchen_ingredient_dough"){
-        if(this.pie.hasDough)return; // 이미 반죽 있음
-        this.pie.hasDough=true;this.pie.cooked=false;this.pie.filling=null;this.pie.lattice=false;this.clearToppings();
-        this.pieGroup.setVisible(true);
-        this.pieBottom.setTexture("pie_bottom_raw").setVisible(true);
-        this.pieJam.setVisible(false);this.pieTop.setVisible(false);
-      }else if(key==="kitchen_ingredient_lattice"){
-        if(!this.pie.hasDough)return;
-        this.pie.lattice=true;this.pieTop.setTexture("pie_top_raw").setVisible(true);
-      }
-    });
+    attachSpawnDrag(
+      shelf,
+      () => this.doughMode === "dough" ? "kitchen_ingredient_dough" : "kitchen_ingredient_lattice",
+      (token) => {
+        const dx = token.x - BOARD_POS.x, dy = token.y - BOARD_POS.y;
+        const onBoard = (dx * dx + dy * dy) <= (BOARD_HIT_R * BOARD_HIT_R);
+        if (!onBoard) return;
+        const key = token.texture.key;
+        if (this.pie.cooked) return;
 
-    const makeBasket=(r:any,tex:string)=>{
-      const z=this.add.zone(r.x,r.y,r.w,r.h).setOrigin(0.5).setInteractive({useHandCursor:true}).setDepth(100);
-      this.input.setDraggable(z,true);
-      attachSpawnDrag(z,()=>tex,(token)=>{
-        const dx=token.x-BOARD_POS.x,dy=token.y-BOARD_POS.y,onBoard=(dx*dx+dy*dy)<=(BOARD_HIT_R*BOARD_HIT_R);
-        if(!onBoard)return;
-        if(tex==="kitchen_ingredient_magic"&&this.magicLocked)return;
-        if(tex.startsWith("kitchen_ingredient_")&&this.pie.hasDough&&!this.pie.cooked){
-          const jam=this.mapKitchenToJam(tex); if(jam){this.pie.filling=jam;this.pieJam.setTexture(jam).setVisible(true);}
-        }else if(tex.startsWith("pie_ingredient_")&&this.pie.cooked){
-          if(!this.pie.toppings.has(tex)){this.pie.toppings.add(tex);
-            const t=this.add.image(PIE_OFFSET.x,PIE_OFFSET.y,tex).setDepth(23);this.pieGroup.add(t);this.toppingSprites.push(t);}
+        if (key === "kitchen_ingredient_dough") {
+          if (this.pie.hasDough) return;
+          this.pie.hasDough = true;
+          this.pie.cooked = false;
+          this.pie.filling = null;
+          this.pie.lattice = false;
+          this.clearToppings();
+          this.pieGroup.setVisible(true);
+          this.pieBottom.setTexture("pie_bottom_raw").setVisible(true);
+          this.pieJam.setVisible(false);
+          this.pieTop.setVisible(false);
+          this.syncToGlobal(); // ← 도우 올렸을 때 저장
+        } else if (key === "kitchen_ingredient_lattice") {
+          if (!this.pie.hasDough) return;
+          this.pie.lattice = true;
+          this.pieTop.setTexture("pie_top_raw").setVisible(true);
+          this.syncToGlobal(); // ← lattice 올렸을 때 저장
+        }
+      }
+    );
+
+    const makeBasket = (r: any, tex: string) => {
+      const z = this.add.zone(r.x, r.y, r.w, r.h)
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(100);
+      this.input.setDraggable(z, true);
+
+      attachSpawnDrag(z, () => tex, (token) => {
+        const dx = token.x - BOARD_POS.x, dy = token.y - BOARD_POS.y;
+        const onBoard = (dx * dx + dy * dy) <= (BOARD_HIT_R * BOARD_HIT_R);
+        if (!onBoard) return;
+        if (tex === "kitchen_ingredient_magic" && this.magicLocked) return;
+
+        if (tex.startsWith("kitchen_ingredient_") && this.pie.hasDough && !this.pie.cooked) {
+          const jam = this.mapKitchenToJam(tex);
+          if (jam) {
+            this.pie.filling = jam;
+            this.pieJam.setTexture(jam).setVisible(true);
+            this.syncToGlobal(); // ← 잼 넣었을 때 저장
+          }
+        } else if (tex.startsWith("pie_ingredient_") && this.pie.cooked) {
+          if (!this.pie.toppings.has(tex)) {
+            this.pie.toppings.add(tex);
+            const t = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, tex).setDepth(23);
+            this.pieGroup.add(t);
+            this.toppingSprites.push(t);
+            this.syncToGlobal(); // ← 토핑 올렸을 때 저장
+          }
         }
       });
     };
@@ -207,26 +237,50 @@ export default class Stage extends Phaser.Scene {
 
   private clearToppings(){for(const s of this.toppingSprites)s.destroy();this.toppingSprites.length=0;this.pie.toppings.clear();}
 
-  private activateOvenTimer(){
-    this.isBaking=true;this.pieGroup.setVisible(false);this.input.setDraggable(this.pieGroup,false);
-    const frames=["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
-    this.ovenTimer.setVisible(true).setTexture(frames[0]);
-    let i=0;const tick=()=>{i++;if(i<frames.length){this.ovenTimer.setTexture(frames[i]);this.time.delayedCall(1000,tick);}
-      else{this.ovenTimer.setVisible(false);this.pie.cooked=true;
-        this.pieBottom.setTexture("pie_bottom_cooked").setVisible(true);
-        if(this.pie.lattice)this.pieTop.setTexture("pie_top_cooked").setVisible(true);
-        this.pieGroup.setPosition(BOARD_POS.x,BOARD_POS.y).setVisible(true);
-        this.input.setDraggable(this.pieGroup,true);this.isBaking=false;}};
-        const S = getGameState();
-        S.pie = {
-          cooked: this.pie.cooked,
-          filling: this.pie.filling,
-          lattice: this.pie.lattice,
-          toppings: Array.from(this.pie.toppings)
-        };
-        setGameState(S);
-    this.time.delayedCall(1000,tick);
+  private syncToGlobal(){
+    const S = getGameState();
+    S.pie = {
+      cooked:  this.pie.cooked,
+      filling: this.pie.filling,
+      lattice: this.pie.lattice,
+      toppings: Array.from(this.pie.toppings)
+    };
+    setGameState(S);
   }
+  
+  private activateOvenTimer(){
+    this.isBaking = true;
+    this.pieGroup.setVisible(false);
+    this.input.setDraggable(this.pieGroup, false);
+
+    const frames = ["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
+    this.ovenTimer.setVisible(true).setTexture(frames[0]);
+
+    let i = 0;
+    const tick = () => {
+      i++;
+      if (i < frames.length) {
+        this.ovenTimer.setTexture(frames[i]);
+        this.time.delayedCall(1000, tick);
+      } else {
+      // === 여기서 '완료' 처리 ===
+        this.ovenTimer.setVisible(false);
+        this.pie.cooked = true;
+
+        this.pieBottom.setTexture("pie_bottom_cooked").setVisible(true);
+        if (this.pie.lattice) this.pieTop.setTexture("pie_top_cooked").setVisible(true);
+
+        this.pieGroup.setPosition(BOARD_POS.x, BOARD_POS.y).setVisible(true);
+        this.input.setDraggable(this.pieGroup, true);
+        this.isBaking = false;
+
+      // ⬇⬇⬇ 완료 후에 전역 저장
+        this.syncToGlobal();
+      }
+    };
+
+  this.time.delayedCall(1000, tick);
+}
 
   private resetPie(){
     this.pie.hasDough=false;this.pie.cooked=false;this.pie.filling=null;this.pie.lattice=false;
