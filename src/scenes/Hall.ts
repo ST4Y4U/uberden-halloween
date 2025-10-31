@@ -455,11 +455,16 @@ export default class Hall extends Phaser.Scene {
         const ok = this.evaluatePie();   // 판정
         this.afterDeliver(ok);           // 기록/진행
       } else {
-        this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
+        this.tweens.add({
+          targets: g,
+          x: POS.hallPie.x,
+          y: POS.hallPie.y,
+          duration: 160
+        });
       }
+    });
+    
       this.hallPieGroup = g;
-    }
-         }
 
   private evaluatePie(): boolean {
     const G = getGameState();
