@@ -1,30 +1,24 @@
-// src/scenes/Hall.ts
 import Phaser from "phaser";
 import { loadStageData, StageData, Line, OrderRule } from "@/data/loadStage";
 import { getGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "@/data/state";
 
 const POS = {
-  background:     { x: 640, y: 360 },
-  counter:        { x: 640, y: 360 },
-  client:         { x: 480, y: 290 },
-  textboxClient:  { x: 960, y: 305, textX: 775, textY: 205 },
-  textboxPlayer:  { x: 325, y: 550, textX: 125, textY: 483 },
-  arrowKitchen:   { x: 1210, y: 625 },
-  board:          { x: 720, y: 620 },
-  hallPie:        { x: 720, y: 620 }
+  background: { x: 640, y: 360 },
+  counter:    { x: 640, y: 360 },
+  client:     { x: 480, y: 290 },          // 스프라이트 표시는 고정, 판정은 JSON deliverZone 사용
+  board:      { x: 720, y: 620 },
+  hallPie:    { x: 720, y: 620 }
 };
 
 const PIE_OFFSET = { x: 0, y: -90 };
-// 히트박스 크게
-const PIE_HIT    = { w: 520, h: 360 };
-const PIE_HIT_SHIFT_X = 60;
+const PIE_HIT    = { w: 520, h: 360 };     // 넉넉한 컨테이너 히트박스
 
 const DEPTH = {
   BG: -1000,
   CLIENT: 10,
   COUNTER: 12,
   BOARD: 13,
-  PIE: 40,   // 말풍선(UI=30)보다 위
+  PIE: 40,   // 말풍선보다 위
   UI: 30,
   CHOICE: 50
 };
@@ -49,6 +43,7 @@ export default class Hall extends Phaser.Scene {
   private hallBoard!: Phaser.GameObjects.Image;
   private hallPieGroup?: Phaser.GameObjects.Container;
 
+  // 납품 판정은 JSON deliverZone (절대좌표)
   private deliverRect!: Phaser.Geom.Rectangle;
 
   preload() {
@@ -68,17 +63,20 @@ export default class Hall extends Phaser.Scene {
     this.load.image("pie_top_cooked",        "assets/images/pie_top_cooked.png");
 
     this.load.image("pie_jam_apple",         "assets/images/pie_jam_apple.png");
-    this.load.image("pie_ingredient_cherry", "assets/images/pie_ingredient_cherry.png");
-    this.load.image("pie_ingredient_sprinkle","assets/images/pie_ingredient_sprinkle.png");
-    this.load.image("pie_ingredient_sugarpowder","assets/images/pie_ingredient_sugarpowder.png");
+    this.load.image("pie_jam_pumpkin",       "assets/images/pie_jam_pumpkin.png");
+    this.load.image("pie_jam_raspberry",     "assets/images/pie_jam_raspberry.png");
+    this.load.image("pie_jam_blueberry",     "assets/images/pie_jam_blueberry.png");
+    this.load.image("pie_jam_strawberry",    "assets/images/pie_jam_strawberry.png");
+    this.load.image("pie_jam_pecan",         "assets/images/pie_jam_pecan.png");
+    this.load.image("pie_jam_magic",         "assets/images/pie_jam_magic.png");
+
+    this.load.image("pie_ingredient_cherry",      "assets/images/pie_ingredient_cherry.png");
+    this.load.image("pie_ingredient_sprinkle",    "assets/images/pie_ingredient_sprinkle.png");
+    this.load.image("pie_ingredient_sugarpowder", "assets/images/pie_ingredient_sugarpowder.png");
   }
 
   async create() {
     const G = getGameState();
-
-    // (옵션) 리로드 시 미납품 파이 자동 폐기하고 싶으면 주석 해제
-    if (G.pie && !G.pie.delivered) clearCarriedPie();
-
     const stageId = G.stageId || 1;
     this.stageData = await loadStageData(stageId);
 
@@ -91,68 +89,73 @@ export default class Hall extends Phaser.Scene {
     this.hallBoard = this.add.image(POS.board.x, POS.board.y, "pie_cuttingboard")
       .setOrigin(0.5).setDepth(DEPTH.BOARD).setVisible(true);
 
-    // 전달 판정 사각형 계산
-    this.recomputeDeliverRect();
+    // 전달 판정: JSON deliverZone 사용(절대좌표)
+    const dz = (this.stageData as any)?.layout?.hall?.deliverZone;
+    if (dz) {
+      this.deliverRect = new Phaser.Geom.Rectangle(dz.x - dz.w/2, dz.y - dz.h/2, dz.w, dz.h);
+    } else {
+      // 폴백(안전)
+      const cb = this.client.getBounds();
+      this.deliverRect = new Phaser.Geom.Rectangle(cb.centerX - cb.width*0.35, cb.centerY - cb.height*0.35, cb.width*0.7, cb.height*0.6);
+    }
 
     // 말풍선 UI
-    this.clBox = this.add.image(POS.textboxClient.x, POS.textboxClient.y, "hall_textbox")
+    this.clBox = this.add.image((this.stageData as any)?.ui?.textboxClient?.x ?? 960, (this.stageData as any)?.ui?.textboxClient?.y ?? 305, "hall_textbox")
       .setDepth(DEPTH.UI).setVisible(false).setInteractive({ useHandCursor:true });
-    this.myBox = this.add.image(POS.textboxPlayer.x, POS.textboxPlayer.y, "hall_mytextbox")
+    this.myBox = this.add.image((this.stageData as any)?.ui?.textboxPlayer?.x ?? 325, (this.stageData as any)?.ui?.textboxPlayer?.y ?? 550, "hall_mytextbox")
       .setDepth(DEPTH.UI+1).setVisible(false).setInteractive({ useHandCursor:true });
 
-    this.clText = this.add.text(POS.textboxClient.textX, POS.textboxClient.textY, "", {
+    this.clText = this.add.text( (this.stageData as any)?.ui?.textboxClient?.textX ?? 775, (this.stageData as any)?.ui?.textboxClient?.textY ?? 205, "", {
       fontFamily:"sans-serif", fontSize:"28px", color:"#140605", wordWrap:{ width: 420 }, lineSpacing: 6
     }).setDepth(DEPTH.UI+2).setVisible(false);
 
-    this.myText = this.add.text(POS.textboxPlayer.textX, POS.textboxPlayer.textY, "", {
+    this.myText = this.add.text( (this.stageData as any)?.ui?.textboxPlayer?.textX ?? 125, (this.stageData as any)?.ui?.textboxPlayer?.textY ?? 483, "", {
       fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width: 420 }, lineSpacing: 8
     }).setDepth(DEPTH.UI+3).setVisible(false);
 
     this.clBox.on("pointerup", () => this.advance());
     this.myBox.on("pointerup", () => this.advance());
 
-    // 주방으로 이동
-    this.toKitchenArrow = this.add.image(POS.arrowKitchen.x, POS.arrowKitchen.y, "hall_arrow")
+    // 주방 이동 화살표: JSON ui.arrowToKitchen
+    const arrowK = (this.stageData as any)?.ui?.arrowToKitchen ?? { x: 1210, y: 625 };
+    this.toKitchenArrow = this.add.image(arrowK.x, arrowK.y, "hall_arrow")
       .setDepth(DEPTH.UI+5).setInteractive({ useHandCursor:true })
       .on("pointerup", () => this.scene.start("Stage"));
 
-    // 들고 온 파이가 있으면 복원
-// 들고 온 파이가 있으면 복원
+    // 들고 온 파이가 있으면: 주문 대사 차단 + 파이 표시
     if (G.pie?.cooked) {
       this.spawnHallPie(G.pie.filling ?? null, !!G.pie.lattice, G.pie.toppings ?? []);
-  // === 주문 대사 차단 ===
       this.hideBubbles();
-      this.dialogQueue = []; // 프리/주문 대사 시작하지 않음
+      this.dialogQueue = [];
     } else {
-  // 프리 대화 → 주문 대사
+      // 프리 대화 → 주문 대화
       const pre = this.stageData.customers?.[0]?.preDialogue ?? [];
       this.dialogQueue = [...pre, { who: "client", text: "" } as any];
       this.showNextFromQueue();
     }
-
-    // 프리 대화 → 주문 대화
-    const pre = this.stageData.customers?.[0]?.preDialogue ?? [];
-    this.dialogQueue = [...pre, { who: "client", text: "" } as any];
-    this.showNextFromQueue();
   }
 
-  // 전달 판정 사각형 재계산(스프라이트 바뀔 때마다 호출)
-  private recomputeDeliverRect(){
-    const cb = this.client.getBounds();
-    const cx = cb.x + cb.width * 0.5;
-    const cy = cb.y + cb.height * 0.5 + 40; // 약간 아래로
-    this.deliverRect = new Phaser.Geom.Rectangle(
-      cx - cb.width  * 0.35,
-      cy - cb.height * 0.35,
-      cb.width  * 0.70,
-      cb.height * 0.60
-    );
-  }
-
-  private getClientSprite(face: "standard" | "happy" | "angry" = "standard"): string {
+  private getClientSprite(face: "standard"|"happy"|"angry"="standard"){
     const C: any = this.stageData.customers?.[0];
-    const s = (C?.sprites ?? {}) as Record<string, string>;
+    const s = C?.sprites || {};
     return s[face] || "client_levin_standard";
+  }
+
+  // 성공/실패 대사(JSON) → 없으면 폴백
+  private getOutcomeText(type: "success"|"fail"){ 
+    const C: any = this.stageData.customers?.[0] ?? {};
+    if (type==="success" && C.successLine?.text) return String(C.successLine.text);
+    if (type==="fail"    && C.failLine?.text)    return String(C.failLine.text);
+    // 다른 키 후보들
+    if (type==="success" && C.deliver?.success)  return String(C.deliver.success);
+    if (type==="fail"    && C.deliver?.fail)     return String(C.deliver.fail);
+    return type==="success" ? "좋아. 딱 원하던 파이야." : "…이건 주문이 아니야.";
+  }
+  private getOutcomeSprite(type:"success"|"fail"):{
+    const C: any = this.stageData.customers?.[0] ?? {};
+    const key = type==="success" ? C.successLine?.sprite : C.failLine?.sprite;
+    if (key==="happy"||key==="angry"||key==="standard") return key;
+    return type==="success" ? "happy" : "angry";
   }
 
   private showNextFromQueue(){
@@ -161,7 +164,7 @@ export default class Hall extends Phaser.Scene {
     if (!next) { this.beginOrderDialogue(); return; }
     if (!next.text) { this.beginOrderDialogue(); return; }
 
-    if (next.sprite) { this.client.setTexture(this.getClientSprite(next.sprite)); this.recomputeDeliverRect(); }
+    if (next.sprite) this.client.setTexture(this.getClientSprite(next.sprite));
     if (next.who === "player") {
       this.clBox.setVisible(false); this.clText.setVisible(false);
       this.myBox.setVisible(true);  this.myText.setVisible(true).setText(next.text);
@@ -185,7 +188,7 @@ export default class Hall extends Phaser.Scene {
 
     this.clBox.setVisible(true); this.clText.setVisible(true).setText(node.text || "");
     this.myBox.setVisible(false); this.myText.setVisible(false);
-    if (node.sprite) { this.client.setTexture(this.getClientSprite(node.sprite)); this.recomputeDeliverRect(); }
+    if (node.sprite) this.client.setTexture(this.getClientSprite(node.sprite));
 
     this.destroyChoices();
     const cs: any[] = node.choices || [];
@@ -211,80 +214,60 @@ export default class Hall extends Phaser.Scene {
   private hideBubbles(){ this.clBox.setVisible(false); this.clText.setVisible(false); this.myBox.setVisible(false); this.myText.setVisible(false); }
   private advance(){ if (!this.awaitingChoice) this.showNextFromQueue(); }
 
-  // ===== 파이 표시/전달 =====
   private spawnHallPie(filling: string | null, lattice: boolean, toppings: string[]){
     this.hallPieGroup?.destroy();
-
     const g = this.add.container(POS.hallPie.x, POS.hallPie.y).setDepth(DEPTH.PIE);
     const bottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_cooked").setVisible(true);
     const jam    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, filling ?? "pie_jam_apple").setVisible(!!filling);
     const top    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_top_cooked").setVisible(!!lattice);
     g.add([bottom, jam, top]);
-
     for (const t of toppings) g.add(this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, t));
 
-    // 드래그/히트박스
     g.setSize(PIE_HIT.w, PIE_HIT.h);
-    g.setInteractive(
-      new Phaser.Geom.Rectangle(-PIE_HIT.w/2, -PIE_HIT.h/2, PIE_HIT.w, PIE_HIT.h),
-      Phaser.Geom.Rectangle.Contains
-    );
+    g.setInteractive(new Phaser.Geom.Rectangle(-PIE_HIT.w/2, -PIE_HIT.h/2, PIE_HIT.w, PIE_HIT.h), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(g, true);
 
-    g.on("drag", (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
-      g.setPosition(dragX, dragY);
-    });
+    g.on("drag", (_p: Phaser.Input.Pointer, dx: number, dy: number)=>{ g.setPosition(dx,dy); });
 
-    // 강력한 dragend: 로그+피드백
     g.on("dragend", () => {
-      try {
-        if (!this.deliverRect) this.recomputeDeliverRect();
-
-    // 컨테이너 실제 바운즈
-        const r = g.getBounds();
-
-    // 히트박스를 오른쪽으로 평행이동해서 판정
-        const shifted = new Phaser.Geom.Rectangle(r.x + PIE_HIT_SHIFT_X, r.y, r.width, r.height);
-        const hit = Phaser.Geom.Intersects.RectangleToRectangle(shifted, this.deliverRect);
-    
-        if (!hit) {
-      // 미스: 흔들고 원위치
-          this.tweens.add({ targets: g, x: g.x + 8, duration: 60, yoyo: true, repeat: 2 });
-          this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut", delay: 120 });
-          return;
-    }
-
-        const ok = this.evaluatePie();
-
-        if (!ok) {
-      // 실패: 붉은 플래시 + 실패 대사 + 원위치
-          const flash = this.add.rectangle(g.x, g.y, PIE_HIT.w, PIE_HIT.h, 0xff0000, 0.15).setDepth(DEPTH.PIE + 1);
-          this.tweens.add({ targets: flash, alpha: 0, duration: 250, onComplete: () => flash.destroy() });
-
-      // 실패 대사 & 표정
-          this.client.setTexture(this.getClientSprite("angry"));
-          this.clBox.setVisible(true); this.clText.setVisible(true).setText("…이건 주문이 아니야.");
-          this.time.delayedCall(650, () => {
-            this.clBox.setVisible(false); this.clText.setVisible(false);
-            this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut" });
-          });
-          return;
-        }
-
-    // 성공: 짧은 성공 대사 후 납품 처리
-        this.client.setTexture(this.getClientSprite("happy"));
-        this.clBox.setVisible(true); this.clText.setVisible(true).setText("고마워. 딱 내가 원하던 파이야.");
-        this.tweens.add({
-          targets: g, scale: 1.05, alpha: 0.0, duration: 220, ease: "Sine.easeIn"
-        });
-        this.time.delayedCall(320, () => {
-          this.clBox.setVisible(false); this.clText.setVisible(false);
-          this.afterDeliver(true);
-        });
-      } catch (_e) {
-        this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut" });
+      // 파이 바운즈가 deliverRect(절대좌표)와 겹치면 납품
+      const r = g.getBounds();
+      const hit = Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect);
+      if (!hit) {
+        // 미스: 흔들고 원위치
+        this.tweens.add({ targets: g, x: g.x + 8, duration: 60, yoyo: true, repeat: 2 });
+        this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut", delay: 120 });
+        return;
       }
+
+      const ok = this.evaluatePie();
+      if (!ok) {
+        // 실패 대사(JSON)
+        const text = this.getOutcomeText("fail");
+        const sprite = this.getOutcomeSprite("fail");
+        const flash = this.add.rectangle(g.x, g.y, PIE_HIT.w, PIE_HIT.h, 0xff0000, 0.15).setDepth(DEPTH.PIE + 1);
+        this.tweens.add({ targets: flash, alpha: 0, duration: 220, onComplete: () => flash.destroy() });
+        this.client.setTexture(this.getClientSprite(sprite as any));
+        this.clBox.setVisible(true); this.clText.setVisible(true).setText(text);
+        this.time.delayedCall(700, ()=>{
+          this.clBox.setVisible(false); this.clText.setVisible(false);
+          this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 280, ease: "Sine.easeOut" });
+        });
+        return;
+      }
+
+      // 성공: 성공 대사(JSON) → 짧게 보여준 뒤 처리
+      const text = this.getOutcomeText("success");
+      const sprite = this.getOutcomeSprite("success");
+      this.client.setTexture(this.getClientSprite(sprite as any));
+      this.clBox.setVisible(true); this.clText.setVisible(true).setText(text);
+      this.tweens.add({ targets: g, scale: 1.05, alpha: 0.0, duration: 220, ease: "Sine.easeIn" });
+      this.time.delayedCall(320, ()=>{
+        this.clBox.setVisible(false); this.clText.setVisible(false);
+        this.afterDeliver(true);
+      });
     });
+
     this.hallPieGroup = g;
   }
 
@@ -292,39 +275,29 @@ export default class Hall extends Phaser.Scene {
     const G = getGameState();
     const C: any = this.stageData.customers?.[0];
     const o: OrderRule = (C?.order || {}) as OrderRule;
-    const isFinal = this.stageData.id === 7;
 
     const pie = G.pie;
     if (!pie || !pie.cooked) return false;
 
-    const normalize = (s?: string) => s?.replace(/^pie_jam_/, "");
-    const fillingOk = isFinal
-      ? (normalize(pie.filling) === "magic")
-      : (o.filling ? normalize(pie.filling) === normalize(o.filling) : true);
-
-    const latticeOk  = o.ignoreLattice
-                    || (o.needsLattice === undefined ? true : pie.lattice === !!o.needsLattice)
-                    || (isFinal && o.ignoreLattice === true);
-
-    const toppingOk  = o.ignoreToppings
-                    || (o.toppings ? o.toppings.every(t => pie.toppings.includes(t)) : true)
-                    || (isFinal && o.ignoreToppings === true);
+    const fillingOk = o.filling ? pie.filling === o.filling : true; // 키 그대로 비교
+    const latticeOk = o.ignoreLattice || (o.needsLattice === undefined ? true : pie.lattice === !!o.needsLattice);
+    const toppingOk = o.ignoreToppings || (o.toppings ? o.toppings.every(t => pie.toppings.includes(t)) : true);
 
     return !!(pie.cooked && fillingOk && latticeOk && toppingOk);
   }
 
   private afterDeliver(ok: boolean){
     const G = getGameState();
-    if (G.pie) G.pie.delivered = true; // 납품 완료 표시
+    if (G.pie) G.pie.delivered = true;
 
     recordEvaluation(ok);
-    clearCarriedPie();                // 파이 소모
-    this.hallPieGroup?.destroy();     // 화면에서 제거
+    clearCarriedPie();
+    this.hallPieGroup?.destroy();
 
-    if (ok) advanceStage();           // 성공시에만 다음 단계
+    if (ok) advanceStage();
 
-    if (this.stageData.id >= 7) {
-      const result = computeEnding();
+    if ((this.stageData as any)?.id >= 7) {
+      const result = computeEnding() as "good"|"normal"|"bad";
       this.scene.start("Result", { result });
     } else {
       this.scene.start("Hall");
