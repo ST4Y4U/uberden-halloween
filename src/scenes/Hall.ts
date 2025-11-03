@@ -323,7 +323,7 @@ export default class Hall extends Phaser.Scene {
 
   private afterDeliver(ok: boolean){
   // 통계 기록
-    recordEvaluation(오케이);
+    recordEvaluation(ok);
 
   // 파이 소모/정리
     const P = readCarriedPie();
