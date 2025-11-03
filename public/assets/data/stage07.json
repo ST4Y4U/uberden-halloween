@@ -67,7 +67,9 @@
       "sprites": {
         "standard": "client_hide_standard",
         "happy": "client_hide_changed",
-        "angry": "client_hide_angry"
+        "angry": "client_hide_angry",
+        "anxious": "client_hide_anxious",
+        "changed": "client_hide_changed"
       },
       "preDialogue": [
         { "who": "player", "text": "...왜 아직 안가시지?" },
