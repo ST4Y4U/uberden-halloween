@@ -8,6 +8,7 @@ import {
   recordEvaluation,
   advanceStage,
   computeEnding,
+  writeCarriedPie,
 } from "../data/state";
 
 const POS = {
@@ -287,14 +288,17 @@ export default class Hall extends Phaser.Scene {
     run(0);
   }
 
-  private afterDeliver(ok: boolean){
-    // 납품 마킹 + 기록 + 화면 제거
-    const G = getGameState();
-    if (G.pie) G.pie.delivered = true;
+  private afterDeliver(ok: boolean) {
+    const P = readCarriedPie();
+    if (!P) return;
 
-    recordEvaluation(ok);
-    clearCarriedPie();
-    this.hallPieGroup?.destroy();
+    if (P.cooked) {
+      const fillingKey = P.filling?.replace("pie_jam_", "") || "apple";
+      this.spawnHallPie(fillingKey, P.lattice, P.toppings);
+    }
+
+    P.delivered = true;
+    writeCarriedPie(P);
 
     // 성공/실패 대사 → (엔딩이면 에필로그) → 씬 전환
     const line = this.getOutcomeLine(ok ? "success" : "fail");
