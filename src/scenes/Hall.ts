@@ -5,6 +5,7 @@ import {
   getGameState,
   readCarriedPie,
   clearCarriedPie,
+  writeCarriedPie,
   recordEvaluation,
   advanceStage,
   computeEnding,
