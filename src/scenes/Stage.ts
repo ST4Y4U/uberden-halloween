@@ -1,6 +1,6 @@
 // src/scenes/Stage.ts
 import Phaser from "phaser";
-import { writeCarriedPie } from "@/data/state";
+import { writeCarriedPie } from "../data/state";
 
 const BOARD_POS   = { x: 720,  y: 625 };
 const BOARD_HIT_R = 160;
