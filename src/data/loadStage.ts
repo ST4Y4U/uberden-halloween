@@ -1,21 +1,10 @@
-export type Choice = {
-  label: string;
-  next: string;
-};
+// src/data/loadStage.ts
 
-export type Line = {
-  who: "client" | "player";
-  text: string;
-  sprite?: string;
-};
-
-export type DialogNode = {
-  id: string;
-  who: "client";
-  text: string;
-  sprite?: string;
-  choices?: Choice[];
-};
+// 말풍선에 쓸 스프라이트 키(스테이지7에서 'changed','anxious'도 쓰므로 포함)
+export type FaceKey = "standard" | "happy" | "angry" | "changed" | "anxious" | (string & {});
+export type Choice = { label: string; next: string };
+export type Line = { who: "client" | "player"; text: string; sprite?: FaceKey };
+export type DialogNode = { id: string; who: "client"; text: string; sprite?: FaceKey; choices?: Choice[] };
 
 export type OrderRule = {
   filling?: string;
@@ -23,43 +12,36 @@ export type OrderRule = {
   toppings?: string[];
   ignoreLattice?: boolean;
   ignoreToppings?: boolean;
-  successText?: string;
-  failText?: string;
 };
 
 export type Customer = {
   id: string;
   name?: string;
-  sprites: Sprites;
+  sprites: Record<FaceKey, string>;
   preDialogue?: Line[];
   dialogue?: DialogNode[];
   order?: OrderRule;
   successLine?: Line;
   failLine?: Line;
-  deliver?: { success?: string; fail?: string };
-  dialogueOutcome?: { success?: string; fail?: string };
-  endingLine?: Line;
+  deliver?: { success?: string; fail?: string }; // 여유 슬롯
 };
 
 export type StageData = {
   id: number;
   name?: string;
-  bakeTimeSec?: number;
-  magicUnlocked?: boolean;
-  nextStage?: number;
-  endGame?: boolean; // 엔딩 여부
-  ui?: {
-    arrowToKitchen?: { x: number; y: number };
-    arrowToHall?: { x: number; y: number };
+  ui?: { arrowToKitchen?: { x: number; y: number }; arrowToHall?: { x: number; y: number } };
+  layout?: {
+    hall?: { deliverZone?: { x: number; y: number; w: number; h: number } };
+    kitchen?: unknown;
   };
-  layout?: any; // 구조 복잡해서 any로 둠 (필요하면 세분화 가능)
   customers: Customer[];
   epilogueSuccess?: Line[];
   epilogueFail?: Line[];
+  endGame?: boolean; // 스테이지 7에서 true
 };
 
+// GitHub Pages 같은 루트 기준 경로
 export async function loadStageData(id: number): Promise<StageData> {
-  // 🔧 절대경로 대신 상대경로 혹은 Vite 기준 public 경로
   const path = `/uberden-halloween/assets/data/stage0${id}.json`;
   const res = await fetch(path);
   if (!res.ok) throw new Error(`stage json ${id} 404`);
