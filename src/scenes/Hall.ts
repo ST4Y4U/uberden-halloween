@@ -267,32 +267,32 @@ export default class Hall extends Phaser.Scene {
 
     g.on("dragend", ()=>{
       const r = g.getBounds();
-      if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
-        const ok = this.evaluatePie();
-        this.afterDeliver(ok);
-      } else {
-        this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
-      }
-    });
+    if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
+      const ok = this.evaluatePie();   // ✅ 판정
+      this.afterDeliver(ok);           // ✅ 대사+진행
+    } else {
+      this.tweens.add({ targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 160 });
+    }
+  });
 
     this.hallPieGroup = g;
   }
 
   private evaluatePie(): boolean {
-    const G = getGameState();
-    const C = this.stageData.customers?.[0];
-    const o: OrderRule = C?.order || {};
-    const P = G.pie;
+  // ✅ 전역 상태가 아니라, 실제 들고 온 파이(揣)만 본다
+    const P = readCarriedPie();
     if (!P || !P.cooked) return false;
 
-    const norm = (s?: string) => (s ? s.replace("pie_jam_","") : "");
-    const fillingOk = o.filling ? norm(P.filling ?? "") === norm(o.filling ?? "") : true;
+    const C = this.stageData.customers?.[0];
+    const o: OrderRule = C?.order || {};
+
+    const norm = (s?: string | null) => (s ? s.replace("pie_jam_", "") : "");
+    const fillingOk = o.filling ? norm(P.filling) === norm(o.filling) : true;
     const latticeOk = o.ignoreLattice || (o.needsLattice === undefined ? true : P.lattice === !!o.needsLattice);
     const toppingOk = o.ignoreToppings || (Array.isArray(o.toppings) ? o.toppings.every(tt => (P.toppings ?? []).includes(tt)) : true);
 
     return !!(P.cooked && fillingOk && latticeOk && toppingOk);
-  }
-
+}
   // 결과 대사 로딩(우선순위: successLine/failLine → 기본)
   private getOutcomeLine(type: "success"|"fail"): Line {
     const C: any = this.stageData.customers?.[0] ?? {};
