@@ -279,7 +279,7 @@ export default class Hall extends Phaser.Scene {
   }
 
   private evaluatePie(): boolean {
-  // ✅ 전역 상태가 아니라, 실제 들고 온 파이(揣)만 본다
+
     const P = readCarriedPie();
     if (!P || !P.cooked) return false;
 
@@ -292,7 +292,7 @@ export default class Hall extends Phaser.Scene {
     const toppingOk = o.ignoreToppings || (Array.isArray(o.toppings) ? o.toppings.every(tt => (P.toppings ?? []).includes(tt)) : true);
 
     return !!(P.cooked && fillingOk && latticeOk && toppingOk);
-}
+  }
   // 결과 대사 로딩(우선순위: successLine/failLine → 기본)
   private getOutcomeLine(type: "success"|"fail"): Line {
     const C: any = this.stageData.customers?.[0] ?? {};
