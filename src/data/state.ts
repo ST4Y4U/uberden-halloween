@@ -1,5 +1,6 @@
 export type Stats = { good: number; bad: number };
 export type CarriedPie = {
+  delivered: any;
   cooked: boolean;
   filling: string | null;   // "pie_jam_apple"
   lattice: boolean;
@@ -28,7 +29,15 @@ export function resetRun() {
 
 export function recordEvaluation(ok: boolean) {
   const g = _load();
-  if (오케이) g.stats.good++; else g.stats.bad++;
+
+  g.stats ??= { good: 0, bad: 0 };
+
+  if (ok) {
+    g.stats.good = (g.stats.good ?? 0) + 1;
+  } else {
+    g.stats.bad  = (g.stats.bad  ?? 0) + 1;
+  }
+
   _save(g);
 }
 
