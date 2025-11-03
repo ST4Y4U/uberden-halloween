@@ -182,6 +182,7 @@ export default class Hall extends Phaser.Scene {
     run(0);
   }
   
+  
   private destroyChoices(){ this.choiceA?.destroy(); this.choiceB?.destroy(); this.choiceA=undefined; this.choiceB=undefined; }
   private hideBubbles(){ this.clBox.setVisible(false); this.clText.setVisible(false); this.myBox.setVisible(false); this.myText.setVisible(false); }
 
@@ -313,14 +314,7 @@ export default class Hall extends Phaser.Scene {
     this.time.delayedCall(ms, ()=>{ this.clBox.setVisible(false); this.clText.setVisible(false); done?.(); });
   }
 
-  private playEpilogue(lines: Line[], next: ()=>void){
-    const run = (i:number)=>{
-      if (i >= lines.length) { next(); return; }
-      const L = lines[i];
-      this.showClientLine(L.text, L.sprite ?? "standard", 1200, ()=> run(i+1));
-    };
-    run(0);
-  }
+
 
   private afterDeliver(ok: boolean){
   // 통계 기록
