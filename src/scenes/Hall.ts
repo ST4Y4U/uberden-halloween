@@ -74,13 +74,15 @@ export default class Hall extends Phaser.Scene {
       const cb = this.client.getBounds();
       this.deliverRect = new Phaser.Geom.Rectangle(cb.x+cb.width*0.35, cb.y+cb.height*0.35, cb.width*0.7, cb.height*0.6);
     }
-
+    this.clBox.on("pointerup", () => this.advance());
+    this.myBox.on("pointerup", () => this.advance());
     // 말풍선
     this.clBox = this.add.image(POS.textboxClient.x, POS.textboxClient.y, "hall_textbox").setDepth(DEPTH.UI).setVisible(false);
     this.myBox = this.add.image(POS.textboxPlayer.x, POS.textboxPlayer.y, "hall_mytextbox").setDepth(DEPTH.UI+1).setVisible(false);
     this.clText = this.add.text(POS.textboxClient.textX, POS.textboxClient.textY, "", { fontFamily:"sans-serif", fontSize:"28px", color:"#140605", wordWrap:{ width:420 } }).setDepth(DEPTH.UI+2).setVisible(false);
     this.myText = this.add.text(POS.textboxPlayer.textX, POS.textboxPlayer.textY, "", { fontFamily:"sans-serif", fontSize:"28px", color:"#F7E2B2", wordWrap:{ width:420 } }).setDepth(DEPTH.UI+3).setVisible(false);
 
+    
     // 주방으로 이동
     this.add.image(POS.arrowKitchen.x, POS.arrowKitchen.y, "hall_arrow")
       .setDepth(DEPTH.UI+5).setInteractive({ useHandCursor:true })
