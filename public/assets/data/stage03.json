@@ -56,9 +56,9 @@
       "id": "c3",
       "name": "liona",
       "sprites": {
-        "standard": "client_liona_standard",
-        "happy": "client_liona_happy",
-        "angry": "client_liona_angry"
+        "standard": "client_liora_standard",
+        "happy": "client_liora_happy",
+        "angry": "client_liora_angry"
       },
       "dialogue": [
         {
