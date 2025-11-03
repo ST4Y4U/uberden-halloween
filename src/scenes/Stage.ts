@@ -90,7 +90,6 @@ export default class Stage extends Phaser.Scene {
     this.pieGroup.setInteractive(new Phaser.Geom.Rectangle(-160,-110,320,220), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(this.pieGroup, true);
 
-    // 오브젝트 단위 드래그 리스너(타입 안전)
     this.pieGroup.on("drag", (_p: Phaser.Input.Pointer, dragX: number, dragY: number) => {
       this.pieGroup.setPosition(dragX, dragY);
     });
@@ -148,11 +147,11 @@ export default class Stage extends Phaser.Scene {
         this.pieGroup.setPosition(BOARD_POS.x, BOARD_POS.y).setVisible(true);
         this.pieBottom.setTexture("pie_bottom_raw").setVisible(true);
         this.pieJam.setVisible(false); this.pieTop.setVisible(false);
-        this.syncToGlobal();
+        this.syncToHall();
       }else if(key==="kitchen_ingredient_lattice"){
         if(!this.pie.hasDough) return;
         this.pie.lattice=true; this.pieTop.setTexture("pie_top_raw").setVisible(true);
-        this.syncToGlobal();
+        this.syncToHall();
       }
     });
 
@@ -168,13 +167,13 @@ export default class Stage extends Phaser.Scene {
 
         if(tex.startsWith("kitchen_ingredient_") && this.pie.hasDough && !this.pie.cooked){
           const jam=this.mapKitchenToJam(tex);
-          if(jam){ this.pie.filling=jam; this.pieJam.setTexture(jam).setVisible(true); this.syncToGlobal(); }
+          if(jam){ this.pie.filling=jam; this.pieJam.setTexture(jam).setVisible(true); this.syncToHall(); }
         }else if(tex.startsWith("pie_ingredient_") && this.pie.cooked){
           if(!this.pie.toppings.has(tex)){
             this.pie.toppings.add(tex);
             const t=this.add.image(PIE_OFFSET.x,PIE_OFFSET.y,tex).setDepth(23);
             this.pieGroup.add(t); this.toppingSprites.push(t);
-            this.syncToGlobal();
+            this.syncToHall();
           }
         }
       });
@@ -183,7 +182,7 @@ export default class Stage extends Phaser.Scene {
     Object.entries(BASKETS).filter(([k])=>k!=="magic").forEach(([k,v])=>makeBasket(v,`kitchen_ingredient_${k}`));
     Object.entries(TOPPING_ZONES).forEach(([k,v])=>makeBasket(v,`pie_ingredient_${k}`));
 
-    // 매직 해금
+    // 매직 해금 키
     const magicZone=this.add.zone(BASKETS.magic.x,BASKETS.magic.y,BASKETS.magic.w,BASKETS.magic.h).setOrigin(0.5).setDepth(100);
     const attachMagic=()=>{ if((magicZone as any).__bound) return; (magicZone as any).__bound=true;
       magicZone.setInteractive({useHandCursor:true}); this.input.setDraggable(magicZone,true);
@@ -191,7 +190,7 @@ export default class Stage extends Phaser.Scene {
         const dx=t.x-BOARD_POS.x,dy=t.y-BOARD_POS.y,onBoard=(dx*dx+dy*dy)<=(BOARD_HIT_R*BOARD_HIT_R);
         if(!onBoard||!this.pie.hasDough) return;
         const jam=this.mapKitchenToJam("kitchen_ingredient_magic");
-        if(jam){ this.pie.filling=jam; this.pieJam.setTexture(jam).setVisible(true); this.syncToGlobal(); }
+        if(jam){ this.pie.filling=jam; this.pieJam.setTexture(jam).setVisible(true); this.syncToHall(); }
       });
     };
 
@@ -207,6 +206,7 @@ export default class Stage extends Phaser.Scene {
       }
     });
 
+    // 오븐/버너 드롭존
     const oven=this.add.zone(OVEN_ZONE.x,OVEN_ZONE.y,OVEN_ZONE.w,OVEN_ZONE.h).setOrigin(0.5).setRectangleDropZone(OVEN_ZONE.w,OVEN_ZONE.h);
     const burn=this.add.zone(BURN_ZONE.x,BURN_ZONE.y,BURN_ZONE.w,BURN_ZONE.h).setOrigin(0.5).setRectangleDropZone(BURN_ZONE.w,BURN_ZONE.h);
 
@@ -218,7 +218,7 @@ export default class Stage extends Phaser.Scene {
     });
     this.input.on("dragend",(_p:any,g:any)=>{ if(g===this.pieGroup && !this.isBaking) this.pieGroup.setVisible(true).setPosition(BOARD_POS.x,BOARD_POS.y); });
 
-    // 진입 시 항상 깨끗하게
+    // 초기화
     this.resetPie();
   }
 
@@ -250,7 +250,7 @@ export default class Stage extends Phaser.Scene {
         this.input.setDraggable(this.pieGroup,true);
 
         this.isBaking=false;
-        this.syncToGlobal();
+        this.syncToHall(); // ← 굽기 완료 저장
       }
     };
 
@@ -267,9 +267,12 @@ export default class Stage extends Phaser.Scene {
     this.pieTop?.setVisible(false);
 
     if(this.pieGroup) this.input.setDraggable(this.pieGroup,true);
+
+    // 리셋은 Hall 저장을 건드리지 않음(납품/실패 측 로직이 clearCarriedPie 처리)
   }
 
-  private syncToGlobal(){
+  // Hall이 기대하는 구조로 저장
+  private syncToHall(){
     writeCarriedPie({
       cooked:  this.pie.cooked,
       filling: this.pie.filling,
