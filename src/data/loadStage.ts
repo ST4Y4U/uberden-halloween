@@ -30,12 +30,7 @@ export type OrderRule = {
 export type Customer = {
   id: string;
   name?: string;
-  sprites: {
-    standard: string;
-    happy?: string;
-    angry?: string;
-    [key: string]: string; // sprite 확장 허용
-  };
+  sprites: Sprites;
   preDialogue?: Line[];
   dialogue?: DialogNode[];
   order?: OrderRule;

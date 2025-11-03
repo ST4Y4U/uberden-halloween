@@ -85,10 +85,17 @@ export default class Stage extends Phaser.Scene {
     this.pieBottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_raw").setVisible(false);
     this.pieJam    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_jam_apple").setVisible(false);
     this.pieTop    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_top_raw").setVisible(false);
-    this.pieGroup.add([this.pieBottom, this.pieJam, this.pieTop]);
+    this.pieGroup.add([this.pieBottom , this.pieJam, this.pieTop]);
     this.pieGroup.setSize(320, 220);
     this.pieGroup.setInteractive(new Phaser.Geom.Rectangle(-160,-110,320,220), Phaser.Geom.Rectangle.Contains);
     this.input.setDraggable(this.pieGroup, true);
+
+    this.input.on(
+      "drag",
+      (_p: Phaser.Input.Pointer, g: any, dx: number, dy: number) => {
+        if (g === this.pieGroup) this.pieGroup.setPosition(dx, dy);
+      }
+    );
 
     // 오브젝트 단위 드래그 리스너(타입 안전)
     this.pieGroup.on("drag", (_p: Phaser.Input.Pointer, dragX: number, dragY: number) => {
