@@ -1,64 +1,92 @@
-export type Stats = { good: number; bad: number };
-export type CarriedPie = {
-  delivered: any;
-  cooked: boolean;
-  filling: string | null;   // "pie_jam_apple"
-  lattice: boolean;
-  toppings: string[];       // ["pie_ingredient_cherry", ...]
-};
-export type GameState = {
-  stageId: number;          // 1..7
-  stats: Stats;
-  pie?: CarriedPie;         // 홀로 들고 가는 파이
-};
+// src/data/state.ts
+// 게임 전역 상태 관리 (로컬스토리지 + 메모리 분리)
 
-const KEY = "uberden_halloween_state";
+export interface GameState {
+  stageId: number;
+  stats: {
+    good: number;
+    bad: number;
+  };
+}
+
+export interface CarriedPie {
+  cooked: boolean;
+  filling: string | null;
+  lattice: boolean;
+  toppings: string[];
+  delivered: boolean;
+}
+
+// ----------------------------
+// 로컬스토리지 (영구 저장용)
+// ----------------------------
+const KEY = "astrash_state";
 
 function _load(): GameState {
-  try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch {}
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  // 초기 상태
   return { stageId: 1, stats: { good: 0, bad: 0 } };
 }
-function _save(g: GameState) { localStorage.setItem(KEY, JSON.stringify(g)); }
 
-export function getGameState(): GameState { return _load(); }
-export function setGameState(g: GameState) { _save(g); }
+function _save(g: GameState) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(g));
+  } catch {}
+}
 
-export function resetRun() {
-  setGameState({ stageId: 1, stats: { good: 0, bad: 0 } });
+// ----------------------------
+// 파이 상태 (비영구, 메모리 전용)
+// ----------------------------
+let _volatilePie: CarriedPie | null = null;
+
+export function writeCarriedPie(pie: CarriedPie) {
+  _volatilePie = { ...pie };
+}
+
+export function readCarriedPie(): CarriedPie | null {
+  return _volatilePie ? { ..._volatilePie } : null;
+}
+
+export function clearCarriedPie() {
+  _volatilePie = null;
+}
+
+// ----------------------------
+// 일반 전역 상태
+// ----------------------------
+export function getGameState(): GameState {
+  return _load();
+}
+
+export function setGameState(g: GameState) {
+  _save(g);
+}
+
+// ----------------------------
+// 스테이지 관리
+// ----------------------------
+export function advanceStage() {
+  const g = _load();
+  g.stageId++;
+  _save(g);
 }
 
 export function recordEvaluation(ok: boolean) {
   const g = _load();
-
-  g.stats ??= { good: 0, bad: 0 };
-
-  if (ok) {
-    g.stats.good = (g.stats.good ?? 0) + 1;
-  } else {
-    g.stats.bad  = (g.stats.bad  ?? 0) + 1;
-  }
-
+  if (ok) g.stats.good++;
+  else g.stats.bad++;
   _save(g);
 }
 
-export function clearCarriedPie() {
-  const g = _load();
-  delete g.pie;
-  _save(g);
-}
-
-export function advanceStage(): number {
-  const g = _load();
-  g.stageId = Math.min(7, g.stageId + 1);
-  _save(g);
-  return g.stageId;
-}
-
+// ----------------------------
+// 엔딩 계산 로직
+// ----------------------------
 export function computeEnding(): "good" | "normal" | "bad" {
   const g = _load();
-  const total = g.stats.good + g.stats.bad;
-  if (total === 0) return "normal";
-  if (g.stats.bad === 0) return "good";
-  if (g.stats.good === 0) return "bad";
-  return "normal";
+  if (g.stats.good >= 5) return "good";
+  if (g.stats.good >= 2) return "normal";
+  return "bad";
 }

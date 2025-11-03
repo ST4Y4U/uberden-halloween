@@ -1,7 +1,7 @@
 // src/scenes/Hall.ts
 import Phaser from "phaser";
-import { loadStageData, StageData, Line, OrderRule } from "@/data/loadStage";
-import { getGameState, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "@/data/state";
+import { loadStageData, StageData, OrderRule } from "../data/loadStage";
+import { readCarriedPie, clearCarriedPie, recordEvaluation, advanceStage, computeEnding } from "../data/state";
 
 const POS = {
   background:     { x: 640, y: 360 },
@@ -11,18 +11,18 @@ const POS = {
   textboxPlayer:  { x: 325, y: 550, textX: 125, textY: 483 },
   arrowKitchen:   { x: 1210, y: 625 },
   board:          { x: 720, y: 620 },
-  hallPie:        { x: 740, y: 620 } // 약간 오른쪽
+  hallPie:        { x: 740, y: 620 } // 약간 우측
 };
 
 const PIE_OFFSET = { x: 0, y: -90 };
-const PIE_HIT    = { w: 360, h: 260 }; // 좀 더 큼
+const PIE_HIT    = { w: 360, h: 260 };
 
 const DEPTH = {
   BG: -1000,
   CLIENT: 10,
   COUNTER: 12,
   BOARD: 13,
-  PIE: 40,   // 말풍선보다 위
+  PIE: 40,
   UI: 30,
   CHOICE: 50
 };
@@ -72,8 +72,8 @@ export default class Hall extends Phaser.Scene {
   }
 
   async create() {
-    const G = getGameState();
-    const stageId = G.stageId || 1;
+    const P = readCarriedPie();
+    const stageId = (await import("../data/state")).getGameState().stageId || 1; // stage id만 필요
     this.stageData = await loadStageData(stageId);
 
     this.add.image(POS.background.x, POS.background.y, "hall_background").setDepth(DEPTH.BG);
@@ -83,7 +83,7 @@ export default class Hall extends Phaser.Scene {
     this.hallBoard = this.add.image(POS.board.x, POS.board.y, "pie_cuttingboard")
       .setOrigin(0.5).setDepth(DEPTH.BOARD).setVisible(true);
 
-    // deliverZone 우선 사용, 없으면 스프라이트 기준 + 우측 보정
+    // deliverZone(JSON) 우선, 없으면 스프라이트 기준 + 우측 보정
     const dz: any = (this.stageData as any)?.layout?.hall?.deliverZone;
     if (dz) {
       this.deliverRect = new Phaser.Geom.Rectangle(dz.x - dz.w/2 + 20, dz.y - dz.h/2, dz.w, dz.h);
@@ -118,9 +118,8 @@ export default class Hall extends Phaser.Scene {
       .setDepth(DEPTH.UI+5).setInteractive({ useHandCursor:true })
       .on("pointerup", () => this.scene.start("Stage"));
 
-    // 파이를 들고 왔다면 대사 스킵
-    const hasCarriedPie = !!G.pie?.cooked;
-    if (hasCarriedPie) {
+    // 파이를 들고 있으면 주문 대사 스킵, 아니면 항상 대사 시작
+    if (P?.cooked) {
       this.dialogQueue = [];
       this.hideBubbles();
     } else {
@@ -130,23 +129,22 @@ export default class Hall extends Phaser.Scene {
     }
 
     // 파이 복원
-    if (G.pie?.cooked) {
-      this.spawnHallPie(G.pie.filling ?? null, !!G.pie.lattice, G.pie.toppings ?? []);
+    if (P?.cooked) {
+      this.spawnHallPie(P.filling ?? null, !!P.lattice, P.toppings ?? []);
     }
   }
 
-  private getClientSprite(face: "standard"|"happy"|"angry" = "standard"){
+  private getClientSprite(face: string = "standard"): string {
     const C: any = this.stageData.customers?.[0];
     const s = (C?.sprites ?? {}) as Record<string,string>;
     return s[face] || "client_levin_standard";
   }
 
-  // ===== outcome 대사 헬퍼 =====
+  // outcome 대사 헬퍼(JSON: successLine/failLine 우선)
   private getOutcomeLine(type: "success"|"fail"): { text: string; sprite: "standard"|"happy"|"angry" } {
     const C: any = this.stageData?.customers?.[0] ?? {};
     if (type==="success" && C.successLine?.text) return { text: String(C.successLine.text), sprite: (C.successLine.sprite ?? "happy") };
     if (type==="fail"    && C.failLine?.text)    return { text: String(C.failLine.text),    sprite: (C.failLine.sprite ?? "angry") };
-    // fallback
     return type==="success"
       ? { text: "고마워. 딱 내가 원하던 파이야.", sprite: "happy" }
       : { text: "…이건 주문이 아니야.",         sprite: "angry" };
@@ -237,7 +235,7 @@ export default class Hall extends Phaser.Scene {
     );
     this.input.setDraggable(g, true);
 
-    g.on("drag", (_pointer: any, dragX: number, dragY: number) => {
+    g.on("drag", (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
       g.setPosition(dragX, dragY);
     });
 
@@ -246,7 +244,7 @@ export default class Hall extends Phaser.Scene {
       if (Phaser.Geom.Intersects.RectangleToRectangle(r, this.deliverRect)) {
         g.setVisible(false); // 평가 중 숨김
         const ok = this.evaluatePie();
-        this.afterDeliver(ok, g);
+        this.afterDeliver(ok);
       } else {
         this.tweens.add({
           targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 180,
@@ -259,58 +257,89 @@ export default class Hall extends Phaser.Scene {
   }
 
   private evaluatePie(): boolean {
-    const G = getGameState();
+    const P = readCarriedPie();
+    if (!P || !P.cooked) return false;
+
     const C: any = this.stageData.customers?.[0];
     const o: OrderRule = C?.order || {};
     const isFinal = (this.stageData as any).id === 7;
 
-    const pie = G.pie;
-    if (!pie || !pie.cooked) return false;
+  // ★ null/undefined 허용 + 접두어 제거
+    const normalize = (s: string | null | undefined) =>
+      (s ?? "").replace(/^pie_jam_/, "");
 
-    const normalize = (s?: string) => s?.replace("pie_jam_","");
     const fillingOk = isFinal
-      ? (normalize(pie.filling) === "magic")
-      : (o.filling ? normalize(pie.filling) === normalize(o.filling as any) : true);
+      ? (normalize(P.filling) === "magic")
+      : (o.filling ? normalize(P.filling) === normalize((o as any).filling) : true);
 
-    const latticeOk = !!(o as any).ignoreLattice
-      || (o.needsLattice === undefined ? true : !!pie.lattice === !!o.needsLattice)
-      || (isFinal && (o as any).ignoreLattice === true);
+    const latticeOk =
+      !!(o as any).ignoreLattice ||
+      (o.needsLattice === undefined ? true : !!P.lattice === !!o.needsLattice) ||
+      (isFinal && (o as any).ignoreLattice === true);
 
-    const toppingOk = !!(o as any).ignoreToppings
-      || (o.toppings ? o.toppings.every(t => pie.toppings.includes(t)) : true)
-      || (isFinal && (o as any).ignoreToppings === true);
+    const toppingOk =
+      !!(o as any).ignoreToppings ||
+      (o.toppings ? o.toppings.every(t => P.toppings.includes(t)) : true) ||
+      (isFinal && (o as any).ignoreToppings === true);
 
-    return !!(pie.cooked && fillingOk && latticeOk && toppingOk);
+    return !!(P.cooked && fillingOk && latticeOk && toppingOk);
   }
 
-  private afterDeliver(ok: boolean, g: Phaser.GameObjects.Container){
-    // 기록
+  private afterDeliver(ok: boolean) {
+    const P = readCarriedPie();
+    if (P) P.delivered = true;
+
     recordEvaluation(ok);
+    clearCarriedPie();
+    this.hallPieGroup?.destroy();
 
-    if (ok) {
-      const line = this.getOutcomeLine("success");
-      this.showClientLine(line.text, line.sprite, 800, () => {
-        clearCarriedPie();                // 파이 소모
-        g.destroy(); this.hallPieGroup = undefined;
+    const id = this.stageData.id;
+    const C: any = this.stageData.customers?.[0];
 
-        // 스테이지/엔딩 분기
-        if ((this.stageData as any).id >= 7) {
-          const result = computeEnding() as "good"|"normal"|"bad";
-          this.scene.start("Result", { result });
-        } else {
-          advanceStage();
-          this.scene.start("Hall");
-        }
-      });
-    } else {
-      const line = this.getOutcomeLine("fail");
-      this.showClientLine(line.text, line.sprite, 800, () => {
-        // 실패: 원위치로 스냅백 + 보이기, 스테이지 유지
-        this.tweens.add({
-          targets: g, x: POS.hallPie.x, y: POS.hallPie.y, duration: 180,
-          onComplete: () => g.setVisible(true)
-        });
-      });
+  // === 마지막 스테이지 처리 ===
+    if (id === 7 || this.stageData.endGame) {
+      const lines = ok ? this.stageData.epilogueSuccess : this.stageData.epilogueFail;
+
+      if (Array.isArray(lines) && lines.length > 0) {
+      // 대사 순차 출력
+        let i = 0;
+        const next = () => {
+          const L = lines[i++];
+          if (!L) {
+          const result = computeEnding();
+            this.scene.start("Result", { result });
+            return;
+          }
+          const sprite = (typeof L.sprite === "string" && L.sprite.length > 0) ? L.sprite : "standard";
+
+          this.showClientLine(
+            L.text ?? "",
+            sprite as string,
+            1400,
+            next
+          );
+        };
+        next();
+      } else {
+      // 예비 방어: epilogue 없을 경우 즉시 결과 화면
+        const result = computeEnding();
+        this.scene.start("Result", { result });
+      }
+      return;
     }
+
+  // === 일반 스테이지 처리 ===
+    const outcomeText = ok
+      ? (C?.successLine?.text ?? "좋았어! 완벽해!")
+      : (C?.failLine?.text ?? "이건 좀 아닌데...");
+
+    const sprite = ok
+      ? (C?.successLine?.sprite ?? "happy")
+      : (C?.failLine?.sprite ?? "angry");
+
+    this.showClientLine(outcomeText, sprite, 1000, () => {
+      advanceStage();
+      this.scene.start("Hall");
+    });
   }
 }
