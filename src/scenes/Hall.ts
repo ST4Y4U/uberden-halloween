@@ -65,6 +65,8 @@ export default class Hall extends Phaser.Scene {
     this.load.image("client_hide_standard", "assets/images/client_hide_standard.png");
     this.load.image("client_hide_changed",  "assets/images/client_hide_changed.png");
     this.load.image("client_hide_angry",    "assets/images/client_hide_angry.png");
+    this.load.image("client_hide_anxious",    "assets/images/client_hide_anxious.png");
+    this.load.image("client_hide_changed",    "assets/images/client_hide_changed.png");
 
     // 파이
     this.load.image("pie_cuttingboard",  "assets/images/pie_cuttingboard.png");
@@ -130,11 +132,11 @@ export default class Hall extends Phaser.Scene {
     // 파이 복원 & 대사 큐 초기화
     const P = readCarriedPie();
     if (P?.cooked && !P.delivered) {
-      // 파이 들고 오면 주문 대사 스킵
+  // 파이 들고 오면 주문 대사 스킵
       this.spawnHallPie(P.filling, P.lattice, P.toppings ?? []);
-      this.dialogQueue = []; // 즉시 납품 가능 상태
+      this.dialogQueue = []; // 대사 시작 안함
     } else {
-      // 일반 흐름: 프리 대사 → 주문
+  // 프리 대사 → 주문
       const pre = this.stageData.customers?.[0]?.preDialogue ?? [];
       this.dialogQueue = [...pre, { who: "client", text: "" } as any];
       this.showNextFromQueue();
@@ -148,6 +150,37 @@ export default class Hall extends Phaser.Scene {
     return map[face] || Object.values(map)[0] || "client_levin_standard";
   }
 
+// 주체(who)에 따라 올바른 말풍선에 노출
+  private showLine(line: Line, ms = 1100, done?: ()=>void){
+    const who = line.who || "client";
+    if (who === "client") {
+      if (line.sprite) this.client.setTexture(this.getClientSprite(line.sprite));
+      this.myBox.setVisible(false); this.myText.setVisible(false);
+      this.clBox.setVisible(true);  this.clText.setVisible(true).setText(line.text || "");
+    } else {
+    // player
+      this.clBox.setVisible(false); this.clText.setVisible(false);
+      this.myBox.setVisible(true);  this.myText.setVisible(true).setText(line.text || "");
+    }
+    if (ms > 0) {
+      this.time.delayedCall(ms, ()=>{
+        this.clBox.setVisible(false); this.clText.setVisible(false);
+        this.myBox.setVisible(false); this.myText.setVisible(false);
+        done?.();
+      });
+    }
+  }
+
+// 에필로그 시퀀스
+  private playEpilogue(lines: Line[], next: ()=>void){
+    const run = (i:number)=>{
+      if (i >= lines.length) { next(); return; }
+      const L = lines[i];
+      this.showLine(L, 1200, ()=> run(i+1));
+    };
+    run(0);
+  }
+  
   private destroyChoices(){ this.choiceA?.destroy(); this.choiceB?.destroy(); this.choiceA=undefined; this.choiceB=undefined; }
   private hideBubbles(){ this.clBox.setVisible(false); this.clText.setVisible(false); this.myBox.setVisible(false); this.myText.setVisible(false); }
 
@@ -252,7 +285,7 @@ export default class Hall extends Phaser.Scene {
     const P = G.pie;
     if (!P || !P.cooked) return false;
 
-    const norm = (s?: string) => (s ? s.replace("pie_jam_", "") : "");
+    const norm = (s?: string) => (s ? s.replace("pie_jam_","") : "");
     const fillingOk = o.filling ? norm(P.filling ?? "") === norm(o.filling ?? "") : true;
     const latticeOk = o.ignoreLattice || (o.needsLattice === undefined ? true : P.lattice === !!o.needsLattice);
     const toppingOk = o.ignoreToppings || (Array.isArray(o.toppings) ? o.toppings.every(tt => (P.toppings ?? []).includes(tt)) : true);
@@ -288,16 +321,21 @@ export default class Hall extends Phaser.Scene {
     run(0);
   }
 
-  private afterDeliver(ok: boolean) {
-    // 기록 먼저
-    recordEvaluation(ok);
+  private afterDeliver(ok: boolean){
+  // 통계 기록
+    recordEvaluation(오케이);
 
-    // 화면의 파이 제거 + 캐시 정리(다음 스테이지에서 주문 대사 정상 노출)
-    this.hallPieGroup?.destroy();
+  // 파이 소모/정리
+    const P = readCarriedPie();
+    if (P) { P.delivered = true; writeCarriedPie(P); }
     clearCarriedPie();
+    this.hallPieGroup?.destroy();
 
-    // 성공/실패 대사 → (엔딩이면 에필로그) → 씬 전환
-    const line = this.getOutcomeLine(ok ? "success" : "fail");
+  // 결과 대사 선택(라인이 없으면 기본)
+    const C: any = this.stageData.customers?.[0] ?? {};
+    const line: Line = ok ? (C.successLine as Line) ?? { who:"client", text:"고마워. 딱 내가 원하던 파이야.", sprite:"happy" }
+                          : (C.failLine as Line)    ?? { who:"client", text:"…이건 주문이 아니야.",       sprite:"angry" };
+
     const proceed = () => {
       const isEnd = (this.stageData as any).endGame === true || this.stageData.id >= 7;
       if (isEnd) {
@@ -312,11 +350,13 @@ export default class Hall extends Phaser.Scene {
           this.scene.start("Result", { result });
         }
       } else {
-        if (ok) advanceStage();
+      // ✅ 성공/실패 무조건 다음 스테이지로
+        advanceStage();
         this.scene.start("Hall");
       }
     };
 
-    this.showClientLine(line.text, line.sprite ?? "standard", 1100, proceed);
+  // 주체(who)에 맞춰 출력
+    this.showLine(line, 1100, proceed);
   }
 }
