@@ -8,7 +8,6 @@ import {
   recordEvaluation,
   advanceStage,
   computeEnding,
-  writeCarriedPie,
 } from "../data/state";
 
 const POS = {
@@ -23,11 +22,10 @@ const POS = {
 };
 
 const DEPTH = { BG: -1000, CLIENT: 10, COUNTER: 12, BOARD: 13, PIE: 40, UI: 30, CHOICE: 50 };
-const PIE_HIT = { w: 360, h: 240 };          // 홀 파이 히트박스 상향
+const PIE_HIT = { w: 360, h: 240 };
 const PIE_OFFSET = { x: 0, y: -90 };
 
 export default class Hall extends Phaser.Scene {
-  pie: any;
   constructor(){ super("Hall"); }
 
   private stageData!: StageData;
@@ -60,7 +58,7 @@ export default class Hall extends Phaser.Scene {
     this.load.image("hall_textbox",    "assets/images/hall_textbox.png");
     this.load.image("hall_mytextbox",  "assets/images/hall_mytextbox.png");
 
-    // 기본 손님 스프라이트(스테이지 JSON에서 매핑)
+    // 손님 스프라이트(스테이지 JSON 매핑)
     this.load.image("client_levin_standard","assets/images/client_levin_standard.png");
     this.load.image("client_levin_happy",   "assets/images/client_levin_happy.png");
     this.load.image("client_levin_angry",   "assets/images/client_levin_angry.png");
@@ -92,7 +90,7 @@ export default class Hall extends Phaser.Scene {
     this.hallBoard = this.add.image(POS.board.x, POS.board.y, "pie_cuttingboard")
       .setDepth(DEPTH.BOARD).setVisible(true);
 
-    // 배달 영역: JSON 우선, 없으면 손님 스프라이트에서 우측으로 약간 치우치게 추정
+    // 배달 영역: JSON 우선, 없으면 손님 스프라이트 기준 추정(오른쪽으로 약간 편향)
     const dz = (this.stageData as any).layout?.hall?.deliverZone;
     if (dz) {
       this.deliverRect = new Phaser.Geom.Rectangle(dz.x - dz.w/2, dz.y - dz.h/2, dz.w, dz.h);
@@ -132,9 +130,9 @@ export default class Hall extends Phaser.Scene {
     // 파이 복원 & 대사 큐 초기화
     const P = readCarriedPie();
     if (P?.cooked && !P.delivered) {
-      // 파이 들고 오면 주문 대사 스킵(요구사항)
+      // 파이 들고 오면 주문 대사 스킵
       this.spawnHallPie(P.filling, P.lattice, P.toppings ?? []);
-      this.dialogQueue = []; // 대사 시작 안 함
+      this.dialogQueue = []; // 즉시 납품 가능 상태
     } else {
       // 일반 흐름: 프리 대사 → 주문
       const pre = this.stageData.customers?.[0]?.preDialogue ?? [];
@@ -149,6 +147,9 @@ export default class Hall extends Phaser.Scene {
     const map = (C?.sprites ?? {}) as Record<string,string>;
     return map[face] || Object.values(map)[0] || "client_levin_standard";
   }
+
+  private destroyChoices(){ this.choiceA?.destroy(); this.choiceB?.destroy(); this.choiceA=undefined; this.choiceB=undefined; }
+  private hideBubbles(){ this.clBox.setVisible(false); this.clText.setVisible(false); this.myBox.setVisible(false); this.myText.setVisible(false); }
 
   private showNextFromQueue(){
     if (this.awaitingChoice) return;
@@ -178,12 +179,11 @@ export default class Hall extends Phaser.Scene {
     const node: any = dlg.find(n=>n.id===id);
     if (!node){ this.hideBubbles(); return; }
 
-    // 본문
     if (node.sprite) this.client.setTexture(this.getClientSprite(node.sprite));
     this.clBox.setVisible(true); this.clText.setVisible(true).setText(node.text || "");
     this.myBox.setVisible(false); this.myText.setVisible(false);
 
-    // 선택지
+    // 선택지(있으면 표시)
     this.destroyChoices();
     const cs: any[] = node.choices || [];
     if (!cs.length) return;
@@ -205,8 +205,6 @@ export default class Hall extends Phaser.Scene {
     if (cs[1]) this.choiceB = makeChoice(cs[1].label, cs[1].next, +160);
   }
 
-  private destroyChoices(){ this.choiceA?.destroy(); this.choiceB?.destroy(); this.choiceA=undefined; this.choiceB=undefined; }
-  private hideBubbles(){ this.clBox.setVisible(false); this.clText.setVisible(false); this.myBox.setVisible(false); this.myText.setVisible(false); }
   private advance(){ if (!this.awaitingChoice) this.showNextFromQueue(); }
 
   // ===== 파이 표시/드롭 =====
@@ -216,7 +214,9 @@ export default class Hall extends Phaser.Scene {
     const g = this.add.container(POS.hallPie.x, POS.hallPie.y).setDepth(DEPTH.PIE);
 
     const bottom = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_bottom_cooked").setVisible(true);
-    const jam    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, filling ?? "pie_jam_apple").setVisible(!!filling);
+    // NOTE: Stage에서 저장한 값은 "pie_jam_apple" 같은 풀 키이므로 그대로 사용
+    const jamKey = filling ?? "pie_jam_apple";
+    const jam    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, jamKey).setVisible(!!filling);
     const top    = this.add.image(PIE_OFFSET.x, PIE_OFFSET.y, "pie_top_cooked").setVisible(!!lattice);
     g.add([bottom, jam, top]);
 
@@ -252,8 +252,8 @@ export default class Hall extends Phaser.Scene {
     const P = G.pie;
     if (!P || !P.cooked) return false;
 
-    const norm = (s?: string)=> s?.replace("pie_jam_","");
-    const fillingOk = o.filling ? norm(this.pie.filling) === norm(o.filling) : true;
+    const norm = (s?: string) => (s ? s.replace("pie_jam_", "") : "");
+    const fillingOk = o.filling ? norm(P.filling ?? "") === norm(o.filling ?? "") : true;
     const latticeOk = o.ignoreLattice || (o.needsLattice === undefined ? true : P.lattice === !!o.needsLattice);
     const toppingOk = o.ignoreToppings || (Array.isArray(o.toppings) ? o.toppings.every(tt => (P.toppings ?? []).includes(tt)) : true);
 
@@ -289,16 +289,12 @@ export default class Hall extends Phaser.Scene {
   }
 
   private afterDeliver(ok: boolean) {
-    const P = readCarriedPie();
-    if (!P) return;
+    // 기록 먼저
+    recordEvaluation(ok);
 
-    if (P.cooked) {
-      const fillingKey = P.filling?.replace("pie_jam_", "") || "apple";
-      this.spawnHallPie(fillingKey, P.lattice, P.toppings);
-    }
-
-    P.delivered = true;
-    writeCarriedPie(P);
+    // 화면의 파이 제거 + 캐시 정리(다음 스테이지에서 주문 대사 정상 노출)
+    this.hallPieGroup?.destroy();
+    clearCarriedPie();
 
     // 성공/실패 대사 → (엔딩이면 에필로그) → 씬 전환
     const line = this.getOutcomeLine(ok ? "success" : "fail");
