@@ -87,6 +87,9 @@ export default class Stage extends Phaser.Scene {
   }
 
   create() {
+    this.resetPie();
+    this.isBaking = false;
+    this.input.topOnly = true;
     this.input.topOnly = true;
     this.input.dragDistanceThreshold = 8;
     this.add.image(640, 360, "kitchen_background").setOrigin(0.5).setDepth(-1000);
@@ -223,28 +226,59 @@ export default class Stage extends Phaser.Scene {
 
   private clearToppings(){for(const s of this.toppingSprites)s.destroy();this.toppingSprites.length=0;this.pie.toppings.clear();this.syncToGlobal();}
 
-  private activateOvenTimer(){
-    this.isBaking=true;
-    // 타이머 표시, 파이는 보이도록 유지(요구대로 숨기지 않음)
-    const frames=["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
-    this.ovenTimer.setVisible(true).setTexture(frames[0]);
-    let i=0;
-    const tick=()=>{i++;if(i<frames.length){this.ovenTimer.setTexture(frames[i]);this.time.delayedCall(1000,tick);}
-      else{
+  private activateOvenTimer(): void{
+    this.isBaking = true;
+
+  // 파이 숨김 + 드래그 금지
+    this.pieGroup.setVisible(false);
+    this.input.setDraggable(this.pieGroup, false);
+
+    const frames = ["kitchen_oven_timer_1","kitchen_oven_timer_2","kitchen_oven_timer_3","kitchen_oven_timer_4"];
+  this.ovenTimer.setVisible(true).setTexture(frames[0]);
+
+    let i = 0;
+    const tick = () => {
+      i++;
+      if (i < frames.length) {
+        this.ovenTimer.setTexture(frames[i]);
+        this.time.delayedCall(1000, tick);
+      } else {
+      // 완료
         this.ovenTimer.setVisible(false);
-        this.pie.cooked=true;
-        this.pieBottom.setTexture("pie_bottom_cooked").setVisible(true);
-        if(this.pie.lattice)this.pieTop.setTexture("pie_top_cooked").setVisible(true);
-        this.pieGroup.setPosition(BOARD_POS.x,BOARD_POS.y).setVisible(true);
-        this.isBaking=false;
-        this.syncToGlobal(); // 굽기 완료 순간 저장
-      }};
-    this.time.delayedCall(1000,tick);
+        this.pie.cooked = true;
+
+  this.pieBottom.setTexture("pie_bottom_cooked").setVisible(true);
+        if (this.pie.lattice)
+  this.pieTop.setTexture("pie_top_cooked").setVisible(true);
+
+      // 다시 보이게 + 제자리
+        this.pieGroup.setPosition(BOARD_POS.x, BOARD_POS.y).setVisible(true);
+        this.input.setDraggable(this.pieGroup, true);
+
+        this.isBaking = false;
+        this.syncToGlobal(); // 완료 시 상태 저장
+      }
+    };
+
+    this.time.delayedCall(1000, tick);
   }
 
   private resetPie(){
-    this.pie.hasDough=false;this.pie.cooked=false;this.pie.filling=null;this.pie.lattice=false;
-    this.clearToppings();this.pieBottom.setVisible(false);this.pieJam.setVisible(false);this.pieTop.setVisible(false);
-    this.syncToGlobal();
+  // 논리 상태
+    this.pie.hasDough = false;
+    this.pie.cooked   = false;
+    this.pie.filling  = null;
+    this.pie.lattice  = false;
+    this.pie.toppings.clear();
+
+  // 시각 상태
+    this.clearToppings();
+    this.pieGroup?.setVisible(false).setPosition(BOARD_POS.x, BOARD_POS.y);
+    this.pieBottom?.setVisible(false);
+    this.pieJam?.setVisible(false);
+    this.pieTop?.setVisible(false);
+
+  // 드래그 재허용
+    if (this.pieGroup) this.input.setDraggable(this.pieGroup, true);
   }
 }
